@@ -1,0 +1,9 @@
+.DS_Store
+.RData
+.Rapp.history
+.Rhistory
+__pycache__/
+*.pyc
+*.png
+*.svg
+output/
