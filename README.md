@@ -138,9 +138,12 @@ source .env.merian
 bash busco_to_merian.sh
 ```
 
-## Example output
+## Example data
 
-Example Merian plot for `ilHelArmi9` (`GCA_963930815.1`):
+Example BUSCO input and output for `ilHelArmi9` (`GCA_963930815.1`):
+
+- BUSCO table: [examples/ilHelArmi9_full_table.tsv](examples/ilHelArmi9_full_table.tsv)
+- plot output: `examples/ilHelArmi9.png`
 
 ![Example Merian plot for ilHelArmi9](examples/ilHelArmi9.png)
 
