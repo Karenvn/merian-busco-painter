@@ -6,8 +6,9 @@
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BUSCO_DIR="${BUSCO_DIR:-/Users/kh18/server_data/busco}"
-OUTPUT_DIR="${OUTPUT_DIR:-/Users/kh18/server_data/merians}"
+DATA_ROOT="${DATA_ROOT:-.}"
+BUSCO_DIR="${BUSCO_DIR:-${DATA_ROOT}/busco}"
+OUTPUT_DIR="${OUTPUT_DIR:-${DATA_ROOT}/merians}"
 MERIAN_REF="${MERIAN_REF:-${SCRIPT_DIR}/Merian_elements_full_table.tsv}"
 TOLID_FILE="${TOLID_FILE:-tolids}"
 
