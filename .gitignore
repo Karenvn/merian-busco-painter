@@ -4,6 +4,8 @@
 .Rhistory
 __pycache__/
 *.pyc
-*.png
 *.svg
 output/
+*.png
+!examples/*.png
+
