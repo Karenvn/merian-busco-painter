@@ -1,18 +1,21 @@
 # merian-plotting
 
-Utilities for plotting Merian element assignments from BUSCO `full_table.tsv` files, adapted for genome notes workflows.
+Utilities for plotting Merian element assignments from BUSCO `full_table.tsv` files,
+adapted for genome notes workflows.
 
-Merian elements are 32 ancestral chromosome building blocks found in the genomes of moths and butterflies (Lepidoptera), which have remained largely intact for over 250 million years.
+Merian elements are 32 ancestral chromosome building blocks found in the genomes of
+moths and butterflies (Lepidoptera), which have remained largely intact for over
+250 million years (Wright *et al*. 2024, doi:[10.1038/s41559-024-02329-4](https://doi.org/10.1038/s41559-024-02329-4).
 
 This code is derived from
 [`charlottewright/lep_busco_painter`](https://github.com/charlottewright/lep_busco_painter)
 and uses the same Merian reference table. The main changes in this version are:
 
-- a Python plotting script (`plot_buscopainter.py`) instead of the upstream R plotter
+- a Python plotting script (`plot_buscopainter.py`) instead of the original R plotter
 - inclusion of duplicated BUSCO hits in the location table and plot
 - chromosome length lookup from the NCBI Datasets API `sequence_reports` endpoint
 - modifications to the appearance of the Merian plot for use in genome note publications
-- a batch wrapper for running multiple ToLIDs from genome notes working directories
+- a batch wrapper for running multiple ToLIDs from genome notes working directories.
 
 ## Important assumption
 
@@ -36,10 +39,10 @@ also to improve figure appearance and control. In particular, the Python
 plotting code makes it easier to:
 
 - control font selection and fallback behaviour more cleanly
-- place Merian labels more consistently
+- place Merian labels for each chromosome
 - tune figure sizing and spacing for genome note outputs
 - write PNG and SVG outputs directly from the same code path
-- customise palette choices while keeping the style reproducible
+- customise palette choices while keeping the style reproducible.
 
 The underlying BUSCO-to-Merian interpretation is the same, but the plotting
 layer is easier to maintain and better suited to publication-style figure
@@ -153,6 +156,9 @@ bash busco_to_merian.sh
 
 This code adapts ideas and reference data from
 [`charlottewright/lep_busco_painter`](https://github.com/charlottewright/lep_busco_painter).
+
+The `MerianBow4` palette used here is credited to Arnaud Martin
+(<https://biology.columbian.gwu.edu/arnaud-martin>).
 
 ## Citation
 
