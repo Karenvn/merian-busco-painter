@@ -138,6 +138,13 @@ source .env.merian
 bash busco_to_merian.sh
 ```
 
+## Example output
+
+Example Merian plot for `ilHelArmi9` (`GCA_963930815.1`):
+
+![Example Merian plot for ilHelArmi9](examples/ilHelArmi9.png)
+
+
 ## Notes
 
 - `buscopainter.py` keeps both `Complete` and `Duplicated` BUSCO records.
