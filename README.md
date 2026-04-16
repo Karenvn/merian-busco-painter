@@ -174,8 +174,7 @@ The `MerianBow4` palette used here is credited to Arnaud Martin
 
 This repository uses the Merian element framework described in:
 
-Wright CJ, et al. 2024. Lepidopteran chromosomes are remarkably stable and are
-best understood as fusions and fissions of Merian elements. *Nature Ecology &
+Wright CJ, et al. 2024. Comparative genomics reveals the dynamics of chromosome evolution in Lepidoptera. *Nature Ecology &
 Evolution*. doi:[10.1038/s41559-024-02329-4](https://doi.org/10.1038/s41559-024-02329-4)
 
 Identifiers: PMID: 38383850; PMCID: PMC11009112
