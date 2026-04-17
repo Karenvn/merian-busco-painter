@@ -24,7 +24,7 @@ The bundled `Merian_elements_full_table.tsv` reference table is based on BUSCO
 `full_table.tsv` files were generated with the corresponding BUSCO `odb10`
 database used to build that reference table.
 
-If you run BUSCO with a different database version, BUSCO identifiers may not
+If you run BUSCO with a different database version, BUSCO identifiers will not
 match the reference table correctly and Merian assignments may be incomplete or
 incorrect.
 
