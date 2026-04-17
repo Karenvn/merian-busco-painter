@@ -166,8 +166,7 @@ Example BUSCO input and output for `ilHelArmi9` (`GCA_963930815.1`):
 This code adapts ideas and reference data from
 [`charlottewright/lep_busco_painter`](https://github.com/charlottewright/lep_busco_painter).
 
-The `MerianBow4` palette used here is credited to Arnaud Martin
-(<https://biology.columbian.gwu.edu/arnaud-martin>).
+The `MerianBow4` palette used here is credited to [Arnaud Martin](<https://biology.columbian.gwu.edu/arnaud-martin>).
 
 ## Citation
 
