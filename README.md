@@ -1,11 +1,11 @@
-# merian-plotting
+# merian-busco-painter
 
 Utilities for plotting Merian element assignments from BUSCO `full_table.tsv` files,
 adapted for genome notes workflows.
 
 Merian elements are 32 ancestral chromosome building blocks found in the genomes of
 moths and butterflies (Lepidoptera), which have remained largely intact for over
-250 million years (Wright *et al*. 2024, doi:[10.1038/s41559-024-02329-4](https://doi.org/10.1038/s41559-024-02329-4).
+250 million years (Wright *et al*. 2024, doi:[10.1038/s41559-024-02329-4](https://doi.org/10.1038/s41559-024-02329-4)).
 
 This code is derived from
 [`charlottewright/lep_busco_painter`](https://github.com/charlottewright/lep_busco_painter)
@@ -15,6 +15,7 @@ and uses the same Merian reference table. The main changes in this version are:
 - inclusion of duplicated BUSCO hits in the location table and plot
 - chromosome length lookup from the NCBI Datasets API `sequence_reports` endpoint
 - modifications to the appearance of the Merian plot for use in genome note publications
+- automatic multi-column plotting for assemblies with many chromosomes
 - a batch wrapper for running multiple ToLIDs from genome notes working directories.
 
 ## Important assumption
@@ -40,6 +41,7 @@ plotting code makes it easier to:
 - control font selection and fallback behaviour more cleanly
 - place Merian labels for each chromosome
 - tune figure sizing and spacing for genome note outputs
+- split large karyotypes across columns, with each column scaled to its own longest chromosome
 - write PNG and SVG outputs directly from the same code path
 - customise palette choices while keeping the style reproducible.
 
@@ -88,7 +90,8 @@ python3 plot_buscopainter.py \
   --prefix output/ilHelArmi9/ilHelArmi9 \
   --minimum 1 \
   --palette merianbow4 \
-  --label-threshold 5
+  --label-threshold 5 \
+  --panel-size 40
 ```
 
 Outputs:
@@ -97,6 +100,10 @@ Outputs:
 - `chrom_lengths.tsv`
 - `*.png`
 - `*.svg`
+
+If an assembly has many chromosomes, `plot_buscopainter.py` can split the figure
+into columns automatically. `--panel-size` sets the maximum number of
+chromosomes per column.
 
 ## Batch workflow
 
@@ -133,7 +140,7 @@ If you prefer, keep the variables in a shell file and source them before
 running the batch script:
 
 ```bash
-source .env.merian
+source .env
 bash busco_to_merian.sh
 ```
 
@@ -157,6 +164,8 @@ Example BUSCO input and output for `ilHelArmi9` (`GCA_963930815.1`):
   that chromosome.
 - The plotting script labels each scaffold/chromosome with Merian elements that
   meet the `--label-threshold`.
+- Large chromosome sets can be split across columns with `--panel-size`; each
+  column gets its own x-axis range.
 - If Open Sans is available locally it will be used automatically; otherwise
   matplotlib's default sans-serif font is used.
 

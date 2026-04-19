@@ -2,6 +2,7 @@
 """Plot BUSCO locations coloured by Merian element assignments."""
 
 import argparse
+import math
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
@@ -203,8 +204,8 @@ def get_merian_colors_merianbow4():
     
     return colors
 
-def plot_merian_chromosomes(locations, chrom_lengths, output_prefix, minimum_buscos=3, 
-                           palette='categorical', label_threshold=5):
+def plot_merian_chromosomes(locations, chrom_lengths, output_prefix, minimum_buscos=3,
+                           palette='categorical', label_threshold=5, panel_size=40):
     """Create the main Merian plot with chromosome labels"""
     setup_font()
     
@@ -232,9 +233,7 @@ def plot_merian_chromosomes(locations, chrom_lengths, output_prefix, minimum_bus
     chrom_order = chrom_lengths.sort_values('length', ascending=False)['query_chr'].tolist()
     # DO NOT FILTER - keep all chromosomes even if they have no BUSCOs
     
-    # Prepare y-positions (reversed so longest is at top)
     n_chroms = len(chrom_order)
-    y_positions = {chrom: i for i, chrom in enumerate(reversed(chrom_order))}
     
     # Get colors based on palette choice
     if palette == 'spectrum':
@@ -249,58 +248,68 @@ def plot_merian_chromosomes(locations, chrom_lengths, output_prefix, minimum_bus
     else:
         merian_colors = get_merian_colors()
         print("[INFO] Using categorical palette")
-    
-    # Calculate plot height dynamically
-    plot_height = max(15, 0.9 * n_chroms)
-    
-    # Create figure with extra space for labels
-    fig, ax = plt.subplots(figsize=(30/2.54, plot_height/2.54))
-    
-    # Plot chromosome bars
-    for chrom in chrom_order:
-        y = y_positions[chrom]
-        length = chrom_lengths[chrom_lengths['query_chr'] == chrom]['length'].values[0]
-        
-        # Draw chromosome backbone (white rectangle with black border)
-        rect = patches.Rectangle((0, y - 0.4), length, 0.8,
-                                 facecolor='white', edgecolor='black', linewidth=0.5)
-        ax.add_patch(rect)
-        
-        # Plot BUSCO positions
-        chrom_buscos = locations[locations['query_chr'] == chrom]
-        for _, busco in chrom_buscos.iterrows():
-            if pd.notna(busco['position']):
-                color = merian_colors.get(busco['assigned_chr'], (0.85, 0.85, 0.85))
-                tile = patches.Rectangle((busco['position'] - 25000, y - 0.4),
-                                        50000, 0.8,
-                                        facecolor=color, edgecolor='none')
-                ax.add_patch(tile)
-        
-        # Add Merian label to the right of the chromosome
-        if chrom in merian_labels:
-            label_text = merian_labels[chrom]
-            ax.text(length * 1.02, y, label_text,
-                   va='center', ha='left', fontsize=10,
-                   color='#333333')
-    
-    # Set axis limits and labels
-    max_length = chrom_lengths['length'].max()
-    ax.set_xlim(0, max_length * 1.25)
-    ax.set_ylim(-0.6, n_chroms - 0.4)
-    
-    # X-axis: position in Mb
-    ax.set_xlabel('Position (Mb)', fontsize=11)
-    ax.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'{x/1e6:.0f}'))
-    
-    # Y-axis: chromosome names
-    ax.set_yticks([y_positions[c] for c in chrom_order])
-    ax.set_yticklabels(chrom_order, fontsize=10)
-    ax.set_ylabel('')
-    
-    # Remove top and right spines
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    ax.spines['left'].set_visible(False)
+
+    panel_size = max(1, int(panel_size))
+    ncols = max(1, math.ceil(n_chroms / panel_size))
+    panel_height = max(15, 0.9 * min(panel_size, max(1, n_chroms)))
+    panel_width = 30 / 2.54
+
+    fig, axes = plt.subplots(
+        nrows=1,
+        ncols=ncols,
+        figsize=(panel_width * ncols, panel_height / 2.54),
+        squeeze=False
+    )
+    axes = axes[0]
+
+    for col_idx in range(ncols):
+        ax = axes[col_idx]
+        start_idx = col_idx * panel_size
+        end_idx = min((col_idx + 1) * panel_size, n_chroms)
+        panel_chroms = chrom_order[start_idx:end_idx]
+
+        if not panel_chroms:
+            ax.axis('off')
+            continue
+
+        y_positions = {chrom: i for i, chrom in enumerate(reversed(panel_chroms))}
+        panel_max_length = chrom_lengths[
+            chrom_lengths['query_chr'].isin(panel_chroms)
+        ]['length'].max()
+
+        for chrom in panel_chroms:
+            y = y_positions[chrom]
+            length = chrom_lengths[chrom_lengths['query_chr'] == chrom]['length'].values[0]
+
+            rect = patches.Rectangle((0, y - 0.4), length, 0.8,
+                                     facecolor='white', edgecolor='black', linewidth=0.5)
+            ax.add_patch(rect)
+
+            chrom_buscos = locations[locations['query_chr'] == chrom]
+            for _, busco in chrom_buscos.iterrows():
+                if pd.notna(busco['position']):
+                    color = merian_colors.get(busco['assigned_chr'], (0.85, 0.85, 0.85))
+                    tile = patches.Rectangle((busco['position'] - 25000, y - 0.4),
+                                             50000, 0.8,
+                                             facecolor=color, edgecolor='none')
+                    ax.add_patch(tile)
+
+            if chrom in merian_labels:
+                label_text = merian_labels[chrom]
+                ax.text(length * 1.02, y, label_text,
+                        va='center', ha='left', fontsize=10,
+                        color='#333333')
+
+        ax.set_xlim(0, panel_max_length * 1.25)
+        ax.set_ylim(-0.6, len(panel_chroms) - 0.4)
+        ax.set_xlabel('Position (Mb)', fontsize=11)
+        ax.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'{x/1e6:.0f}'))
+        ax.set_yticks([y_positions[c] for c in panel_chroms])
+        ax.set_yticklabels(panel_chroms, fontsize=10)
+        ax.set_ylabel('')
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.spines['left'].set_visible(False)
     
     # Create legend
     legend_elements = []
@@ -308,9 +317,9 @@ def plot_merian_chromosomes(locations, chrom_lengths, output_prefix, minimum_bus
         legend_elements.append(patches.Patch(facecolor=merian_colors[merian], 
                                             label=merian))
     
-    ax.legend(handles=legend_elements, title='Merian elements',
-             loc='center left', bbox_to_anchor=(1.01, 0.5),
-             frameon=False, fontsize=10, title_fontsize=11)
+    axes[-1].legend(handles=legend_elements, title='Merian elements',
+                    loc='center left', bbox_to_anchor=(1.01, 0.5),
+                    frameon=False, fontsize=10, title_fontsize=11)
     
     plt.tight_layout(rect=[0, 0, 0.82, 1])
     
@@ -340,6 +349,8 @@ def main():
                        help='Color palette: categorical (default), spectrum (turbo), merianbow (original), or merianbow4 (CVD-optimized)')
     parser.add_argument('--label-threshold', type=int, default=5,
                        help='Minimum BUSCOs for a Merian to appear in chromosome label (default: 5)')
+    parser.add_argument('--panel-size', type=int, default=40,
+                       help='Max chromosomes per panel before splitting into columns (default: 40)')
     
     args = parser.parse_args()
     
@@ -347,8 +358,9 @@ def main():
     locations, chrom_lengths = load_data(args.file, args.lengths)
     
     print(f"[INFO] Plotting {len(locations)} BUSCOs across {len(chrom_lengths)} chromosomes...")
-    plot_merian_chromosomes(locations, chrom_lengths, args.prefix, 
-                           args.minimum, args.palette, args.label_threshold)
+    plot_merian_chromosomes(locations, chrom_lengths, args.prefix,
+                           args.minimum, args.palette, args.label_threshold,
+                           args.panel_size)
     
     print("[INFO] Done.")
 
