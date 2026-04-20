@@ -113,12 +113,15 @@ If you run `buscopainter.py` with `--accession`, chromosome lengths are fetched
 from the NCBI Datasets `sequence_reports` endpoint. In that mode, the plot is
 chromosome-focused: plotting units are assembled chromosomes, and lengths from
 unlocalized scaffolds are added to their parent chromosome. This is the mode
-intended for public assemblies and genome notes figures.
+intended for public assemblies and genome note figures. In this mode, the
+plotted chromosome names come from the GenBank accessions
+returned by NCBI Datasets.
 
 If you do not provide `--accession`, curation assemblies can be plotted against
 real scaffold lengths by passing a `.fai` file to `plot_buscopainter.py` with
-`--lengths`. This keeps all BUSCO-bearing sequences visible while preserving
-true scaffold lengths.
+`--lengths`. In this mode, plotted names come directly from the
+sequence identifiers in the BUSCO table and `.fai` index, and scaffold
+lengths come from the index.
 
 The plotting step accepts either the NCBI-derived `chrom_lengths.tsv` written
 by `buscopainter.py` or a standard `.fai` index. Estimating lengths directly
@@ -198,8 +201,10 @@ columns automatically when the number of plotted chromosomes/scaffolds exceeds
 - Chromosome lengths come from NCBI Datasets `sequence_reports`, using the main
   assembled-molecule accession and summing any unlocalized scaffolds assigned to
   that chromosome.
+- In NCBI-driven plots, chromosome labels are the assembled-molecule GenBank
+  accessions returned by Datasets rather than original assembly header names.
 - For curation assemblies, `plot_buscopainter.py` can use a `.fai` index to
-  plot all BUSCO-bearing scaffolds against their true lengths.
+  plot assembly sequences against their true scaffold lengths.
 - Without a lengths file, the fallback plot includes all BUSCO-bearing
   `query_chr` values from the BUSCO table and estimates their lengths from BUSCO
   extent only.
