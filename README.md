@@ -39,7 +39,7 @@ also to improve figure appearance and control. In particular, the Python
 plotting code makes it easier to:
 
 - control font selection and fallback behaviour more cleanly
-- place Merian labels for each chromosome
+- place Merian labels for each chromosome to improve interpretation of the plot
 - tune figure sizing and spacing for genome note outputs
 - split large karyotypes across columns while keeping a consistent Mb scale across panels
 - write PNG and SVG outputs directly from the same code path
@@ -115,15 +115,16 @@ chromosome-focused: plotting units are assembled chromosomes, and lengths from
 unlocalized scaffolds are added to their parent chromosome. This is the mode
 intended for public assemblies and genome notes figures.
 
-If you do not provide `--accession`, no NCBI chromosome table is written and
-`plot_buscopainter.py` falls back to plotting every BUSCO-bearing `query_chr`
-present in the BUSCO table. This is useful during curation, when unassembled
-scaffolds with genes should remain visible so they can be checked and placed.
+If you do not provide `--accession`, curation assemblies can be plotted against
+real scaffold lengths by passing a `.fai` file to `plot_buscopainter.py` with
+`--lengths`. This keeps all BUSCO-bearing sequences visible while preserving
+true scaffold lengths.
 
-There is no separate `.fai` workflow in this repository. The plotting step
-either uses the NCBI-derived `chrom_lengths.tsv` written by `buscopainter.py`,
-or estimates lengths directly from BUSCO positions when no lengths table is
-available.
+The plotting step accepts either the NCBI-derived `chrom_lengths.tsv` written
+by `buscopainter.py` or a standard `.fai` index. Estimating lengths directly
+from BUSCO positions is still supported as a last-resort fallback when no
+lengths file is available, but it reflects BUSCO extent rather than true
+chromosome or scaffold length.
 
 ## Batch workflow
 
@@ -176,11 +177,13 @@ Single-panel example for `ilHelArmi9` (`GCA_963930815.1`):
 Multi-panel example for `ilApoPilo2`, a curation in progress:
 
 - BUSCO table: [examples/ilApoPilo2_full_table.tsv](examples/ilApoPilo2_full_table.tsv)
+- scaffold index: [examples/ilApoPilo2.fa.fai](examples/ilApoPilo2.fa.fai)
 - plot output: `examples/ilApoPilo2.png`
 
-This example shows how assemblies with many BUSCO-bearing sequences are split
-across columns automatically when the number of plotted chromosomes/scaffolds
-exceeds `--panel-size` (default `40`).
+This example uses a `.fai` index so all BUSCO-bearing scaffolds are plotted
+against their true lengths. Assemblies with many sequences are split across
+columns automatically when the number of plotted chromosomes/scaffolds exceeds
+`--panel-size` (default `40`).
 
 ![Example Merian plot for ilApoPilo2](examples/ilApoPilo2.png)
 
@@ -193,8 +196,11 @@ exceeds `--panel-size` (default `40`).
 - Chromosome lengths come from NCBI Datasets `sequence_reports`, using the main
   assembled-molecule accession and summing any unlocalized scaffolds assigned to
   that chromosome.
-- Without an NCBI accession, the fallback plot includes all BUSCO-bearing
-  `query_chr` values from the BUSCO table, which is useful during curation.
+- For curation assemblies, `plot_buscopainter.py` can use a `.fai` index to
+  plot all BUSCO-bearing scaffolds against their true lengths.
+- Without a lengths file, the fallback plot includes all BUSCO-bearing
+  `query_chr` values from the BUSCO table and estimates their lengths from BUSCO
+  extent only.
 - The plotting script labels each scaffold/chromosome with Merian elements that
   meet the `--label-threshold`.
 - Large chromosome sets can be split across columns with `--panel-size`; panel
@@ -215,5 +221,4 @@ The `MerianBow4` palette used here is credited to [Arnaud Martin](<https://biolo
 
 This repository uses the Merian element framework described in:
 
-Wright CJ, et al. 2024. Comparative genomics reveals the dynamics of chromosome evolution in Lepidoptera. *Nature Ecology &
-Evolution*. doi: [10.1038/s41559-024-02329-4](https://doi.org/10.1038/s41559-024-02329-4), PMID: 38383850; PMCID: PMC11009112
+Wright CJ, et al. 2024. Comparative genomics reveals the dynamics of chromosome evolution in Lepidoptera. *Nature Ecology & Evolution*. doi: [10.1038/s41559-024-02329-4](https://doi.org/10.1038/s41559-024-02329-4), PMID: 38383850; PMCID: PMC11009112

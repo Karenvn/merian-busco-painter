@@ -71,21 +71,38 @@ def setup_font():
     except Exception as e:
         print(f"[WARN] Could not load OpenSans: {e}")
 
+def load_lengths(lengths_file):
+    """Load chromosome lengths from either chrom_lengths.tsv or a .fai index."""
+    with open(lengths_file) as fh:
+        first_line = fh.readline().strip().split('\t')
+
+    if first_line[:2] == ['Chrom', 'Length_Mb']:
+        chrom_lengths = pd.read_csv(lengths_file, sep='\t')
+        chrom_lengths['length'] = chrom_lengths['Length_Mb'] * 1e6
+        return chrom_lengths.rename(columns={'Chrom': 'query_chr'})[['query_chr', 'length']]
+
+    chrom_lengths = pd.read_csv(
+        lengths_file,
+        sep='\t',
+        header=None,
+        usecols=[0, 1],
+        names=['query_chr', 'length']
+    )
+    return chrom_lengths
+
 def load_data(location_file, lengths_file=None):
-    """Load BUSCO locations and chromosome lengths"""
+    """Load BUSCO locations and chromosome lengths."""
     # Read locations
     locations = pd.read_csv(location_file, sep='\t')
     
     # Clean chromosome names (remove any :scaffolds)
     locations['query_chr'] = locations['query_chr'].str.replace(':.*', '', regex=True)
     
-    # Read or estimate chromosome lengths
+    # Read chromosome lengths or estimate BUSCO extent as a fallback
     if lengths_file:
-        chrom_lengths = pd.read_csv(lengths_file, sep='\t')
-        chrom_lengths['length'] = chrom_lengths['Length_Mb'] * 1e6  # Convert to bp
-        chrom_lengths = chrom_lengths.rename(columns={'Chrom': 'query_chr'})
+        chrom_lengths = load_lengths(lengths_file)
     else:
-        # Fallback: estimate from max position + 5% padding
+        # Fallback used for curation mode when no chromosome/scaffold index is available
         chrom_lengths = locations.groupby('query_chr')['position'].max().reset_index()
         chrom_lengths['length'] = chrom_lengths['position'] * 1.05
     
@@ -312,7 +329,7 @@ def plot_merian_chromosomes(locations, chrom_lengths, output_prefix, minimum_bus
 
             if chrom in merian_labels:
                 label_text = merian_labels[chrom]
-                ax.text(length * 1.02, y, label_text,
+                ax.text(length * 1.04, y, label_text,
                         va='center', ha='left', fontsize=10,
                         color='#333333')
 
