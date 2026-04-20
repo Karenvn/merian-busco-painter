@@ -214,7 +214,7 @@ columns automatically when the number of plotted chromosomes/scaffolds exceeds
 
 ## Attribution
 
-This code adapts ideas and reference data from
+This code adapts ideas, scripts and reference data from
 [`charlottewright/lep_busco_painter`](https://github.com/charlottewright/lep_busco_painter).
 
 The `MerianBow4` palette used here is credited to [Arnaud Martin](<https://biology.columbian.gwu.edu/arnaud-martin>).
