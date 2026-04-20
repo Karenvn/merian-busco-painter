@@ -15,7 +15,7 @@ and uses the same Merian reference table. The main changes in this version are:
 - inclusion of duplicated BUSCO hits in the location table and plot
 - chromosome length lookup from the NCBI Datasets API `sequence_reports` endpoint
 - modifications to the appearance of the Merian plot for use in genome note publications
-- automatic multi-column plotting for assemblies with many chromosomes
+- automatic multi-column plotting for assemblies with more than 40 chromosomes
 - a batch wrapper for running multiple ToLIDs from genome notes working directories.
 
 ## Important assumption
@@ -31,7 +31,7 @@ match the reference table correctly.
 ## Plot appearance
 
 The plotting step in this repository was reimplemented in Python with
-`matplotlib`, rather than using the original R plotting scripts from
+`matplotlib`, as an alternative to the original R plotting scripts from
 `lep_busco_painter`.
 
 This was done partly for easier integration into genome notes workflows, but
@@ -41,7 +41,7 @@ plotting code makes it easier to:
 - control font selection and fallback behaviour more cleanly
 - place Merian labels for each chromosome
 - tune figure sizing and spacing for genome note outputs
-- split large karyotypes across columns, with each column scaled to its own longest chromosome
+- split large karyotypes across columns while keeping a consistent Mb scale across panels
 - write PNG and SVG outputs directly from the same code path
 - customise palette choices while keeping the style reproducible.
 
@@ -105,6 +105,26 @@ If an assembly has many chromosomes, `plot_buscopainter.py` can split the figure
 into columns automatically. `--panel-size` sets the maximum number of
 chromosomes per column.
 
+## Plotting modes
+
+These scripts are intentionally used in two different ways.
+
+If you run `buscopainter.py` with `--accession`, chromosome lengths are fetched
+from the NCBI Datasets `sequence_reports` endpoint. In that mode, the plot is
+chromosome-focused: plotting units are assembled chromosomes, and lengths from
+unlocalized scaffolds are added to their parent chromosome. This is the mode
+intended for public assemblies and genome notes figures.
+
+If you do not provide `--accession`, no NCBI chromosome table is written and
+`plot_buscopainter.py` falls back to plotting every BUSCO-bearing `query_chr`
+present in the BUSCO table. This is useful during curation, when unassembled
+scaffolds with genes should remain visible so they can be checked and placed.
+
+There is no separate `.fai` workflow in this repository. The plotting step
+either uses the NCBI-derived `chrom_lengths.tsv` written by `buscopainter.py`,
+or estimates lengths directly from BUSCO positions when no lengths table is
+available.
+
 ## Batch workflow
 
 The wrapper expects to be run from a directory containing:
@@ -146,12 +166,23 @@ bash busco_to_merian.sh
 
 ## Example data
 
-Example BUSCO input and output for `ilHelArmi9` (`GCA_963930815.1`):
+Single-panel example for `ilHelArmi9` (`GCA_963930815.1`):
 
 - BUSCO table: [examples/ilHelArmi9_full_table.tsv](examples/ilHelArmi9_full_table.tsv)
 - plot output: `examples/ilHelArmi9.png`
 
 ![Example Merian plot for ilHelArmi9](examples/ilHelArmi9.png)
+
+Multi-panel example for `ilApoPilo2`, a curation in progress:
+
+- BUSCO table: [examples/ilApoPilo2_full_table.tsv](examples/ilApoPilo2_full_table.tsv)
+- plot output: `examples/ilApoPilo2.png`
+
+This example shows how assemblies with many BUSCO-bearing sequences are split
+across columns automatically when the number of plotted chromosomes/scaffolds
+exceeds `--panel-size` (default `40`).
+
+![Example Merian plot for ilApoPilo2](examples/ilApoPilo2.png)
 
 
 ## Notes
@@ -162,10 +193,13 @@ Example BUSCO input and output for `ilHelArmi9` (`GCA_963930815.1`):
 - Chromosome lengths come from NCBI Datasets `sequence_reports`, using the main
   assembled-molecule accession and summing any unlocalized scaffolds assigned to
   that chromosome.
+- Without an NCBI accession, the fallback plot includes all BUSCO-bearing
+  `query_chr` values from the BUSCO table, which is useful during curation.
 - The plotting script labels each scaffold/chromosome with Merian elements that
   meet the `--label-threshold`.
-- Large chromosome sets can be split across columns with `--panel-size`; each
-  column gets its own x-axis range.
+- Large chromosome sets can be split across columns with `--panel-size`; panel
+  widths shrink or expand to fit their local x-axis range while preserving a
+  common Mb scale across the whole figure.
 - If Open Sans is available locally it will be used automatically; otherwise
   matplotlib's default sans-serif font is used.
 
@@ -182,6 +216,4 @@ The `MerianBow4` palette used here is credited to [Arnaud Martin](<https://biolo
 This repository uses the Merian element framework described in:
 
 Wright CJ, et al. 2024. Comparative genomics reveals the dynamics of chromosome evolution in Lepidoptera. *Nature Ecology &
-Evolution*. doi:[10.1038/s41559-024-02329-4](https://doi.org/10.1038/s41559-024-02329-4)
-
-Identifiers: PMID: 38383850; PMCID: PMC11009112
+Evolution*. doi: [10.1038/s41559-024-02329-4](https://doi.org/10.1038/s41559-024-02329-4), PMID: 38383850; PMCID: PMC11009112

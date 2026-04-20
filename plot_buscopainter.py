@@ -252,30 +252,46 @@ def plot_merian_chromosomes(locations, chrom_lengths, output_prefix, minimum_bus
     panel_size = max(1, int(panel_size))
     ncols = max(1, math.ceil(n_chroms / panel_size))
     panel_height = max(15, 0.9 * min(panel_size, max(1, n_chroms)))
-    panel_width = 30 / 2.54
+    widest_panel_width = 30 / 2.54
+
+    label_padding_factor = 0.10
+    panel_chroms_list = []
+    panel_limits = []
+    for col_idx in range(ncols):
+        start_idx = col_idx * panel_size
+        end_idx = min((col_idx + 1) * panel_size, n_chroms)
+        panel_chroms = chrom_order[start_idx:end_idx]
+        panel_chroms_list.append(panel_chroms)
+        if panel_chroms:
+            panel_max_length = chrom_lengths[
+                chrom_lengths['query_chr'].isin(panel_chroms)
+            ]['length'].max()
+            panel_limits.append(panel_max_length * (1 + label_padding_factor))
+        else:
+            panel_limits.append(1.0)
+
+    max_panel_limit = max(panel_limits)
+    fig_width = widest_panel_width * sum(panel_limits) / max_panel_limit
 
     fig, axes = plt.subplots(
         nrows=1,
         ncols=ncols,
-        figsize=(panel_width * ncols, panel_height / 2.54),
-        squeeze=False
+        figsize=(fig_width, panel_height / 2.54),
+        squeeze=False,
+        gridspec_kw={'width_ratios': panel_limits}
     )
     axes = axes[0]
 
     for col_idx in range(ncols):
         ax = axes[col_idx]
-        start_idx = col_idx * panel_size
-        end_idx = min((col_idx + 1) * panel_size, n_chroms)
-        panel_chroms = chrom_order[start_idx:end_idx]
+        panel_chroms = panel_chroms_list[col_idx]
 
         if not panel_chroms:
             ax.axis('off')
             continue
 
         y_positions = {chrom: i for i, chrom in enumerate(reversed(panel_chroms))}
-        panel_max_length = chrom_lengths[
-            chrom_lengths['query_chr'].isin(panel_chroms)
-        ]['length'].max()
+        panel_limit = panel_limits[col_idx]
 
         for chrom in panel_chroms:
             y = y_positions[chrom]
@@ -300,7 +316,7 @@ def plot_merian_chromosomes(locations, chrom_lengths, output_prefix, minimum_bus
                         va='center', ha='left', fontsize=10,
                         color='#333333')
 
-        ax.set_xlim(0, panel_max_length * 1.25)
+        ax.set_xlim(0, panel_limit)
         ax.set_ylim(-0.6, len(panel_chroms) - 0.4)
         ax.set_xlabel('Position (Mb)', fontsize=11)
         ax.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'{x/1e6:.0f}'))
@@ -317,11 +333,11 @@ def plot_merian_chromosomes(locations, chrom_lengths, output_prefix, minimum_bus
         legend_elements.append(patches.Patch(facecolor=merian_colors[merian], 
                                             label=merian))
     
-    axes[-1].legend(handles=legend_elements, title='Merian elements',
-                    loc='center left', bbox_to_anchor=(1.01, 0.5),
-                    frameon=False, fontsize=10, title_fontsize=11)
+    fig.legend(handles=legend_elements, title='Merian elements',
+               loc='center left', bbox_to_anchor=(0.84, 0.5),
+               frameon=False, fontsize=10, title_fontsize=11)
     
-    plt.tight_layout(rect=[0, 0, 0.82, 1])
+    plt.tight_layout(rect=[0, 0, 0.80, 1])
     
     # Save outputs
     for ext in ['png', 'svg']:
