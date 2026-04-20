@@ -172,6 +172,8 @@ Single-panel example for `ilHelArmi9` (`GCA_963930815.1`):
 - BUSCO table: [examples/ilHelArmi9_full_table.tsv](examples/ilHelArmi9_full_table.tsv)
 - plot output: `examples/ilHelArmi9.png`
 
+This example is plotted using the calculated lengths from the NCBI sequence report, and labelled using chromosome accession numbers.
+
 ![Example Merian plot for ilHelArmi9](examples/ilHelArmi9.png)
 
 Multi-panel example for `ilApoPilo2`, a curation in progress:
