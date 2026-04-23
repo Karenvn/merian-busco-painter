@@ -154,30 +154,6 @@ If an assembly has many chromosomes, `plot_buscopainter.py` can split the figure
 into columns automatically. `--panel-size` sets the maximum number of
 chromosomes per column.
 
-## Plotting modes
-
-These scripts are intentionally used in two different ways.
-
-If you run `buscopainter.py` with `--accession`, chromosome lengths are fetched
-from the NCBI Datasets `sequence_reports` endpoint. In that mode, the plot is
-chromosome-focused: plotting units are assembled chromosomes, and lengths from
-unlocalized scaffolds are added to their parent chromosome. This is the mode
-intended for public assemblies and genome note figures. In this mode, the
-plotted chromosome names come from the GenBank accessions returned by NCBI
-Datasets.
-
-If you do not provide `--accession`, curation assemblies can be plotted against
-real scaffold lengths by passing a `.fai` file to `plot_buscopainter.py` with
-`--lengths`. In this mode, plotted names come directly from the sequence
-identifiers in the BUSCO table and `.fai` index, and scaffold lengths come from
-the index. Because the `.fai` defines the plotting units, scaffold entries from
-that index may appear as separate plotted rows.
-
-The plotting step accepts either the NCBI-derived `chrom_lengths.tsv` written
-by `buscopainter.py` or a standard `.fai` index. Estimating lengths directly
-from BUSCO positions is still supported as a last-resort fallback when no
-lengths file is available, but it reflects BUSCO extent rather than true
-chromosome or scaffold length.
 
 ## Batch workflow
 
