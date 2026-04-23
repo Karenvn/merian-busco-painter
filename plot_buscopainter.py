@@ -117,25 +117,31 @@ def filter_chromosomes(locations, minimum_buscos=3):
 def calculate_merian_labels(locations, threshold=5):
     """
     Calculate Merian element labels for each chromosome.
-    Returns {chromosome: 'M1; M3; M18'} for elements with >= threshold BUSCOs.
+    Returns {chromosome: 'M1; M3; M18'} for elements with >= threshold BUSCOs,
+    ordered by their median BUSCO position along the chromosome.
     """
-    # Count BUSCOs per chromosome-Merian combination
     counts = (locations.groupby(['query_chr', 'assigned_chr'])
-              .size()
-              .reset_index(name='n'))
-    
-    # Filter by threshold
+              .agg(
+                  n=('assigned_chr', 'size'),
+                  median_position=('position', 'median')
+              )
+              .reset_index())
+
     counts = counts[counts['n'] >= threshold]
-    
-    # Group by chromosome and join Merian elements
+
+    def merian_sort_key(merian):
+        return (merian != 'MZ', int(merian[1:]) if merian != 'MZ' else 0)
+
     labels = {}
     for chrom in counts['query_chr'].unique():
-        chrom_merians = counts[counts['query_chr'] == chrom]['assigned_chr'].tolist()
-        # Sort Merian elements (MZ first, then M1-M31 numerically)
-        sorted_merians = sorted(chrom_merians, 
-                               key=lambda x: (x != 'MZ', int(x[1:]) if x != 'MZ' else 0))
-        labels[chrom] = '; '.join(sorted_merians)
-    
+        chrom_counts = counts[counts['query_chr'] == chrom].copy()
+        chrom_counts['merian_sort'] = chrom_counts['assigned_chr'].map(merian_sort_key)
+        chrom_counts = chrom_counts.sort_values(
+            ['median_position', 'merian_sort'],
+            kind='stable'
+        )
+        labels[chrom] = '; '.join(chrom_counts['assigned_chr'].tolist())
+
     return labels
 
 def get_merian_colors():
