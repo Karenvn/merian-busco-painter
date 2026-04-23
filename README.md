@@ -71,9 +71,14 @@ Install with:
 python3 -m pip install -r requirements.txt
 ```
 
-## Single assembly workflow
+## Two plotting routes
 
-Prepare a plot from a BUSCO result directory:
+These scripts support two distinct workflows, depending on whether you would like to use chromosome lengths from the public assembly on the NCBI, or an `.fai` file.
+
+### Route 1: Genome note mode
+
+Use this when you have an assembly accession and want a chromosome-focused plot
+for a public assembly or genome note figure.
 
 ```bash
 mkdir -p output/ilHelArmi9
@@ -94,10 +99,54 @@ python3 plot_buscopainter.py \
   --panel-size 40
 ```
 
-Outputs:
+In this mode:
+
+- `buscopainter.py` writes `chrom_lengths.tsv`
+- `plot_buscopainter.py` must use that `chrom_lengths.tsv` as `--lengths`
+- the plotted units are assembled chromosomes only
+- unlocalised scaffolds are added onto their parent chromosome length rather
+  than plotted separately
+
+### Route 2: Draft scaffold mode
+
+Use this when you want to plot against scaffold lengths from a local assembly index.
+
+```bash
+mkdir -p output/ilApoPilo2
+
+python3 buscopainter.py \
+  --reference_table Merian_elements_full_table.tsv \
+  --query_table data/ilApoPilo2/full_table.tsv \
+  --prefix output/ilApoPilo2/
+
+python3 plot_buscopainter.py \
+  --file output/ilApoPilo2/all_location.tsv \
+  --lengths data/ilApoPilo2.fa.fai \
+  --prefix output/ilApoPilo2/ilApoPilo2 \
+  --minimum 1 \
+  --palette merianbow4 \
+  --label-threshold 5 \
+  --panel-size 40
+```
+
+In this mode:
+
+- `buscopainter.py` does not fetch chromosome lengths
+- `plot_buscopainter.py` uses a local `.fai` as `--lengths`
+- the plotted units come from the sequence names in the `.fai`
+- scaffolds in the index can appear as separate plotted rows
+
+Do not mix these routes. In particular:
+
+- if you ran `buscopainter.py` with `--accession`, plot with the generated
+  `chrom_lengths.tsv`, not a `.fai`
+- if you pass a `.fai` to `plot_buscopainter.py`, you are using scaffold mode,
+  even if you also ran `buscopainter.py` with `--accession`
+
+Outputs from `buscopainter.py`:
 
 - `all_location.tsv`
-- `chrom_lengths.tsv`
+- `chrom_lengths.tsv` when `--accession` is used
 - `*.png`
 - `*.svg`
 
@@ -114,14 +163,15 @@ from the NCBI Datasets `sequence_reports` endpoint. In that mode, the plot is
 chromosome-focused: plotting units are assembled chromosomes, and lengths from
 unlocalized scaffolds are added to their parent chromosome. This is the mode
 intended for public assemblies and genome note figures. In this mode, the
-plotted chromosome names come from the GenBank accessions
-returned by NCBI Datasets.
+plotted chromosome names come from the GenBank accessions returned by NCBI
+Datasets.
 
 If you do not provide `--accession`, curation assemblies can be plotted against
 real scaffold lengths by passing a `.fai` file to `plot_buscopainter.py` with
-`--lengths`. In this mode, plotted names come directly from the
-sequence identifiers in the BUSCO table and `.fai` index, and scaffold
-lengths come from the index.
+`--lengths`. In this mode, plotted names come directly from the sequence
+identifiers in the BUSCO table and `.fai` index, and scaffold lengths come from
+the index. Because the `.fai` defines the plotting units, scaffold entries from
+that index may appear as separate plotted rows.
 
 The plotting step accepts either the NCBI-derived `chrom_lengths.tsv` written
 by `buscopainter.py` or a standard `.fai` index. Estimating lengths directly
