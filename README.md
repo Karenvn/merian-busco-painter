@@ -15,7 +15,8 @@ and uses the same Merian reference table. The main changes in this version are:
 - inclusion of duplicated BUSCO hits in the location table and plot
 - chromosome length lookup from the NCBI Datasets API `sequence_reports` endpoint
 - modifications to the appearance of the Merian plot for use in genome note publications
-- automatic multi-column plotting for assemblies with more than 40 chromosomes
+- automatic multi-column plotting for assemblies with more than 20 plotted
+  chromosomes/scaffolds by default
 - a batch wrapper for running multiple ToLIDs from genome notes working directories.
 
 ## Important assumption
@@ -73,7 +74,9 @@ python3 -m pip install -r requirements.txt
 
 ## Two plotting routes
 
-These scripts support two distinct workflows, depending on whether you would like to use chromosome lengths from the public assembly on the NCBI, or an `.fai` file.
+These scripts support two distinct workflows, depending on whether you would
+like to use chromosome lengths from a public assembly on NCBI, or sequence
+lengths from a local `.fai` file.
 
 If you run `buscopainter.py` with `--accession`, chromosome lengths are fetched
 from the NCBI Datasets `sequence_reports` endpoint. In that mode, the plot is
@@ -172,7 +175,8 @@ Outputs from `buscopainter.py`:
 
 If an assembly has many chromosomes, `plot_buscopainter.py` can split the figure
 into columns automatically. `--panel-size` sets the maximum number of
-chromosomes per column.
+chromosomes/scaffolds per column. The default is `20`, so most Lepidoptera
+chromosome-scale assemblies are plotted as two columns.
 
 
 ## Batch workflow
@@ -216,27 +220,29 @@ bash busco_to_merian.sh
 
 ## Example data
 
-Single-panel example for `ilHelArmi9` (`GCA_963930815.1`):
+Public assembly example for `ilHelArmi9` (`GCA_963930815.1`):
 
 - BUSCO table: [examples/ilHelArmi9_full_table.tsv](examples/ilHelArmi9_full_table.tsv)
+- length source: NCBI Datasets `sequence_reports` via accession `GCA_963930815.1`
 - plot output: `examples/ilHelArmi9.png`
 
-This example is plotted using the calculated lengths from the NCBI sequence report, and labelled using chromosome accession numbers.
+This example uses the public assembly accession to fetch chromosome lengths
+from NCBI. Plotted rows are assembled chromosomes, and labels are GenBank
+chromosome accessions.
 
-![Example Merian plot for ilHelArmi9](examples/ilHelArmi9.png)
+![Example Merian plot for public assembly ilHelArmi9](examples/ilHelArmi9.png)
 
-Multi-panel example for `ilApoPilo2`, a curation in progress:
+Local `.fai` example for `ilApoPilo2`, a curation in progress:
 
 - BUSCO table: [examples/ilApoPilo2_full_table.tsv](examples/ilApoPilo2_full_table.tsv)
 - scaffold index: [examples/ilApoPilo2.fa.fai](examples/ilApoPilo2.fa.fai)
 - plot output: `examples/ilApoPilo2.png`
 
 This example uses a `.fai` index so all BUSCO-bearing scaffolds are plotted
-against their true lengths. Assemblies with many sequences are split across
-columns automatically when the number of plotted chromosomes/scaffolds exceeds
-`--panel-size` (default `20`).
+against their true lengths. Plotted rows come from sequence identifiers in the
+`.fai` file rather than NCBI chromosome accessions.
 
-![Example Merian plot for ilApoPilo2](examples/ilApoPilo2.png)
+![Example Merian plot from local .fai lengths for ilApoPilo2](examples/ilApoPilo2.png)
 
 
 ## Notes
