@@ -8,6 +8,11 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib import font_manager
 
+BAR_HEIGHT = 0.58
+LABEL_OFFSET_FACTOR = 0.02
+LABEL_PADDING_FACTOR = 0.06
+DEFAULT_PANEL_SIZE = 20
+
 def resolve_open_sans_font(env_var="GENOMENOTES_FONT"):
     """Locate a regular Open Sans font file.
     Preference order:
@@ -228,7 +233,7 @@ def get_merian_colors_merianbow4():
     return colors
 
 def plot_merian_chromosomes(locations, chrom_lengths, output_prefix, minimum_buscos=3,
-                           palette='categorical', label_threshold=5, panel_size=40):
+                           palette='categorical', label_threshold=5, panel_size=DEFAULT_PANEL_SIZE):
     """Create the main Merian plot with chromosome labels"""
     setup_font()
     
@@ -274,22 +279,22 @@ def plot_merian_chromosomes(locations, chrom_lengths, output_prefix, minimum_bus
 
     panel_size = max(1, int(panel_size))
     ncols = max(1, math.ceil(n_chroms / panel_size))
-    panel_height = max(15, 0.9 * min(panel_size, max(1, n_chroms)))
+    chroms_per_panel = max(1, math.ceil(n_chroms / ncols))
+    panel_height = max(15, 0.9 * min(chroms_per_panel, max(1, n_chroms)))
     widest_panel_width = 30 / 2.54
 
-    label_padding_factor = 0.10
     panel_chroms_list = []
     panel_limits = []
     for col_idx in range(ncols):
-        start_idx = col_idx * panel_size
-        end_idx = min((col_idx + 1) * panel_size, n_chroms)
+        start_idx = col_idx * chroms_per_panel
+        end_idx = min((col_idx + 1) * chroms_per_panel, n_chroms)
         panel_chroms = chrom_order[start_idx:end_idx]
         panel_chroms_list.append(panel_chroms)
         if panel_chroms:
             panel_max_length = chrom_lengths[
                 chrom_lengths['query_chr'].isin(panel_chroms)
             ]['length'].max()
-            panel_limits.append(panel_max_length * (1 + label_padding_factor))
+            panel_limits.append(panel_max_length * (1 + LABEL_PADDING_FACTOR))
         else:
             panel_limits.append(1.0)
 
@@ -319,8 +324,9 @@ def plot_merian_chromosomes(locations, chrom_lengths, output_prefix, minimum_bus
         for chrom in panel_chroms:
             y = y_positions[chrom]
             length = chrom_lengths[chrom_lengths['query_chr'] == chrom]['length'].values[0]
+            bar_bottom = y - BAR_HEIGHT / 2
 
-            rect = patches.Rectangle((0, y - 0.4), length, 0.8,
+            rect = patches.Rectangle((0, bar_bottom), length, BAR_HEIGHT,
                                      facecolor='white', edgecolor='black', linewidth=0.5)
             ax.add_patch(rect)
 
@@ -328,14 +334,14 @@ def plot_merian_chromosomes(locations, chrom_lengths, output_prefix, minimum_bus
             for _, busco in chrom_buscos.iterrows():
                 if pd.notna(busco['position']):
                     color = merian_colors.get(busco['assigned_chr'], (0.85, 0.85, 0.85))
-                    tile = patches.Rectangle((busco['position'] - 25000, y - 0.4),
-                                             50000, 0.8,
+                    tile = patches.Rectangle((busco['position'] - 25000, bar_bottom),
+                                             50000, BAR_HEIGHT,
                                              facecolor=color, edgecolor='none')
                     ax.add_patch(tile)
 
             if chrom in merian_labels:
                 label_text = merian_labels[chrom]
-                ax.text(length * 1.04, y, label_text,
+                ax.text(length * (1 + LABEL_OFFSET_FACTOR), y, label_text,
                         va='center', ha='left', fontsize=10,
                         color='#333333')
 
@@ -356,11 +362,12 @@ def plot_merian_chromosomes(locations, chrom_lengths, output_prefix, minimum_bus
         legend_elements.append(patches.Patch(facecolor=merian_colors[merian], 
                                             label=merian))
     
+    plt.tight_layout()
     fig.legend(handles=legend_elements, title='Merian elements',
-               loc='center left', bbox_to_anchor=(0.84, 0.5),
-               frameon=False, fontsize=10, title_fontsize=11)
-    
-    plt.tight_layout(rect=[0, 0, 0.80, 1])
+               loc='center left', bbox_to_anchor=(1.12, 0.5),
+               bbox_transform=axes[-1].transAxes,
+               frameon=False, fontsize=10, title_fontsize=11,
+               ncol=2, columnspacing=1.5)
     
     # Save outputs
     for ext in ['png', 'svg']:
@@ -388,8 +395,8 @@ def main():
                        help='Color palette: categorical (default), spectrum (turbo), merianbow (original), or merianbow4 (CVD-optimized)')
     parser.add_argument('--label-threshold', type=int, default=5,
                        help='Minimum BUSCOs for a Merian to appear in chromosome label (default: 5)')
-    parser.add_argument('--panel-size', type=int, default=40,
-                       help='Max chromosomes per panel before splitting into columns (default: 40)')
+    parser.add_argument('--panel-size', type=int, default=DEFAULT_PANEL_SIZE,
+                       help=f'Max chromosomes per panel before splitting into columns (default: {DEFAULT_PANEL_SIZE})')
     
     args = parser.parse_args()
     

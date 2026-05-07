@@ -75,6 +75,26 @@ python3 -m pip install -r requirements.txt
 
 These scripts support two distinct workflows, depending on whether you would like to use chromosome lengths from the public assembly on the NCBI, or an `.fai` file.
 
+If you run `buscopainter.py` with `--accession`, chromosome lengths are fetched
+from the NCBI Datasets `sequence_reports` endpoint. In that mode, the plot is
+chromosome-focused: plotting units are assembled chromosomes, and lengths from
+unlocalised scaffolds are added to their parent chromosome. This is the mode
+intended for public assemblies and genome note figures. In this mode, the
+plotted chromosome names come from the GenBank accessions returned by NCBI
+Datasets.
+
+If you do not provide `--accession`, curation assemblies can be plotted against
+real scaffold lengths by passing a `.fai` file to `plot_buscopainter.py` with
+`--lengths`. In this mode, plotted names come directly from the sequence
+identifiers in the BUSCO table and `.fai` index, and scaffold lengths come from
+the index. Because the `.fai` defines the plotting units, scaffold entries from
+that index may appear as separate plotted rows.
+
+The plotting step accepts either the NCBI-derived `chrom_lengths.tsv` written
+by `buscopainter.py` or a standard `.fai` index. Estimating lengths directly
+from BUSCO positions is a last-resort fallback when no
+lengths file is available.
+
 ### Route 1: Genome note mode
 
 Use this when you have an assembly accession and want a chromosome-focused plot
@@ -96,7 +116,7 @@ python3 plot_buscopainter.py \
   --minimum 1 \
   --palette merianbow4 \
   --label-threshold 5 \
-  --panel-size 40
+  --panel-size 20
 ```
 
 In this mode:
@@ -126,7 +146,7 @@ python3 plot_buscopainter.py \
   --minimum 1 \
   --palette merianbow4 \
   --label-threshold 5 \
-  --panel-size 40
+  --panel-size 20
 ```
 
 In this mode:
@@ -214,7 +234,7 @@ Multi-panel example for `ilApoPilo2`, a curation in progress:
 This example uses a `.fai` index so all BUSCO-bearing scaffolds are plotted
 against their true lengths. Assemblies with many sequences are split across
 columns automatically when the number of plotted chromosomes/scaffolds exceeds
-`--panel-size` (default `40`).
+`--panel-size` (default `20`).
 
 ![Example Merian plot for ilApoPilo2](examples/ilApoPilo2.png)
 
