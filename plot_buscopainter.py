@@ -8,10 +8,14 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib import font_manager
 
-BAR_HEIGHT = 0.58
+BAR_HEIGHT = 0.62
 LABEL_OFFSET_FACTOR = 0.02
 LABEL_PADDING_FACTOR = 0.06
 DEFAULT_PANEL_SIZE = 20
+PLOT_BODY_WIDTH_CM = 22
+ROW_HEIGHT_CM = 1.10
+MIN_PLOT_HEIGHT_CM = 18
+MAX_PANEL_COLUMNS = 4
 
 def resolve_open_sans_font(env_var="GENOMENOTES_FONT"):
     """Locate a regular Open Sans font file.
@@ -278,10 +282,12 @@ def plot_merian_chromosomes(locations, chrom_lengths, output_prefix, minimum_bus
         print("[INFO] Using categorical palette")
 
     panel_size = max(1, int(panel_size))
-    ncols = max(1, math.ceil(n_chroms / panel_size))
+    ncols = min(MAX_PANEL_COLUMNS, max(1, math.ceil(n_chroms / panel_size)))
     chroms_per_panel = max(1, math.ceil(n_chroms / ncols))
-    panel_height = max(15, 0.9 * min(chroms_per_panel, max(1, n_chroms)))
-    widest_panel_width = 30 / 2.54
+    panel_height = max(
+        MIN_PLOT_HEIGHT_CM,
+        ROW_HEIGHT_CM * min(chroms_per_panel, max(1, n_chroms))
+    )
 
     panel_chroms_list = []
     panel_limits = []
@@ -298,8 +304,7 @@ def plot_merian_chromosomes(locations, chrom_lengths, output_prefix, minimum_bus
         else:
             panel_limits.append(1.0)
 
-    max_panel_limit = max(panel_limits)
-    fig_width = widest_panel_width * sum(panel_limits) / max_panel_limit
+    fig_width = PLOT_BODY_WIDTH_CM / 2.54
 
     fig, axes = plt.subplots(
         nrows=1,
@@ -347,7 +352,7 @@ def plot_merian_chromosomes(locations, chrom_lengths, output_prefix, minimum_bus
 
         ax.set_xlim(0, panel_limit)
         ax.set_ylim(-0.6, len(panel_chroms) - 0.4)
-        ax.set_xlabel('Position (Mb)', fontsize=11)
+        ax.set_xlabel('')
         ax.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'{x/1e6:.0f}'))
         ax.set_yticks([y_positions[c] for c in panel_chroms])
         ax.set_yticklabels(panel_chroms, fontsize=10)
@@ -362,12 +367,12 @@ def plot_merian_chromosomes(locations, chrom_lengths, output_prefix, minimum_bus
         legend_elements.append(patches.Patch(facecolor=merian_colors[merian], 
                                             label=merian))
     
+    fig.supxlabel('Position (Mb)', fontsize=11)
     plt.tight_layout()
     fig.legend(handles=legend_elements, title='Merian elements',
-               loc='center left', bbox_to_anchor=(1.12, 0.5),
-               bbox_transform=axes[-1].transAxes,
+               loc='center left', bbox_to_anchor=(1.01, 0.5),
                frameon=False, fontsize=10, title_fontsize=11,
-               ncol=2, columnspacing=1.5)
+               ncol=2, columnspacing=1.2)
     
     # Save outputs
     for ext in ['png', 'svg']:
@@ -396,7 +401,7 @@ def main():
     parser.add_argument('--label-threshold', type=int, default=5,
                        help='Minimum BUSCOs for a Merian to appear in chromosome label (default: 5)')
     parser.add_argument('--panel-size', type=int, default=DEFAULT_PANEL_SIZE,
-                       help=f'Max chromosomes per panel before splitting into columns (default: {DEFAULT_PANEL_SIZE})')
+                       help=f'Target chromosomes/scaffolds per panel before splitting into columns (default: {DEFAULT_PANEL_SIZE})')
     
     args = parser.parse_args()
     

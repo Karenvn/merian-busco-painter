@@ -174,9 +174,10 @@ Outputs from `buscopainter.py`:
 - `*.svg`
 
 If an assembly has many chromosomes, `plot_buscopainter.py` can split the figure
-into columns automatically. `--panel-size` sets the maximum number of
+into columns automatically. `--panel-size` sets the target number of
 chromosomes/scaffolds per column. The default is `20`, so most Lepidoptera
-chromosome-scale assemblies are plotted as two columns.
+chromosome-scale assemblies are plotted as two columns. Very large scaffold
+sets are capped at four columns and made taller instead of becoming very wide.
 
 
 ## Batch workflow
@@ -264,7 +265,8 @@ against their true lengths. Plotted rows come from sequence identifiers in the
   meet the `--label-threshold`.
 - Large chromosome sets can be split across columns with `--panel-size`; panel
   widths shrink or expand to fit their local x-axis range while preserving a
-  common Mb scale across the whole figure.
+  common Mb scale across the whole figure. The current layout favours a
+  narrower, taller figure for print and web use.
 - If Open Sans is available locally it will be used automatically; otherwise
   matplotlib's default sans-serif font is used.
 
