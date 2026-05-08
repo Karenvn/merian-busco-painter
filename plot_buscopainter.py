@@ -15,7 +15,8 @@ DEFAULT_PANEL_SIZE = 20
 PLOT_BODY_WIDTH_CM = 22
 ROW_HEIGHT_CM = 1.10
 MIN_PLOT_HEIGHT_CM = 18
-MAX_PANEL_COLUMNS = 4
+MAX_PANEL_COLUMNS = 3
+COMPACT_LABEL_THRESHOLD = 80
 
 def resolve_open_sans_font(env_var="GENOMENOTES_FONT"):
     """Locate a regular Open Sans font file.
@@ -118,10 +119,18 @@ def load_data(location_file, lengths_file=None):
     return locations, chrom_lengths
 
 def filter_chromosomes(locations, minimum_buscos=3):
-    """Filter chromosomes by minimum BUSCO count"""
-    busco_counts = locations.groupby('query_chr').size().reset_index(name='n_busco')
+    """Filter chromosomes by minimum BUSCO count, keeping accession placeholders."""
+    is_placeholder = locations['buscoID'] == 'NA'
+    busco_counts = (
+        locations[~is_placeholder]
+        .groupby('query_chr')
+        .size()
+        .reset_index(name='n_busco')
+    )
     valid_chroms = busco_counts[busco_counts['n_busco'] >= minimum_buscos]['query_chr']
-    return locations[locations['query_chr'].isin(valid_chroms)]
+    placeholder_chroms = locations.loc[is_placeholder, 'query_chr']
+    keep_chroms = set(valid_chroms).union(placeholder_chroms)
+    return locations[locations['query_chr'].isin(keep_chroms)]
 
 def calculate_merian_labels(locations, threshold=5):
     """
@@ -237,12 +246,12 @@ def get_merian_colors_merianbow4():
     return colors
 
 def plot_merian_chromosomes(locations, chrom_lengths, output_prefix, minimum_buscos=3,
-                           palette='categorical', label_threshold=5, panel_size=DEFAULT_PANEL_SIZE):
+                           palette='categorical', label_threshold=5,
+                           panel_size=DEFAULT_PANEL_SIZE, max_columns=MAX_PANEL_COLUMNS):
     """Create the main Merian plot with chromosome labels"""
     setup_font()
     
-    # Filter by minimum BUSCOs, but keep track of all chromosomes from chrom_lengths
-    # This ensures sex chromosomes (like W) are always plotted even if empty
+    # Filter by minimum BUSCOs before deciding which rows to plot.
     locations_filtered = filter_chromosomes(locations, minimum_buscos)
     
     # Keep track of placeholder rows (where buscoID is NA)
@@ -255,17 +264,31 @@ def plot_merian_chromosomes(locations, chrom_lengths, output_prefix, minimum_bus
     ]
     locations_filtered['assigned_chr'] = locations_filtered['assigned_chr'].str.upper()
     
-    # Use filtered locations for calculating labels, but keep all chromosomes for plotting
+    # Use filtered locations for calculating labels and plotted rows.
     locations = locations_filtered
+
+    if locations.empty:
+        raise ValueError(
+            f"No chromosomes/scaffolds have at least {minimum_buscos} BUSCOs"
+        )
+
+    plotted_chroms = set(locations['query_chr'].dropna().unique())
+    chrom_lengths = chrom_lengths[chrom_lengths['query_chr'].isin(plotted_chroms)].copy()
+
+    if chrom_lengths.empty:
+        raise ValueError("No plotted chromosomes/scaffolds have matching lengths")
     
     # Calculate Merian labels for each chromosome
     merian_labels = calculate_merian_labels(locations, threshold=label_threshold)
     
-    # Order chromosomes by length (descending) - USE ALL CHROMOSOMES FROM chrom_lengths
+    # Order chromosomes by length (descending)
     chrom_order = chrom_lengths.sort_values('length', ascending=False)['query_chr'].tolist()
-    # DO NOT FILTER - keep all chromosomes even if they have no BUSCOs
     
     n_chroms = len(chrom_order)
+    print(
+        f"[INFO] Plotting {len(locations)} BUSCOs across "
+        f"{n_chroms} chromosomes/scaffolds after filtering..."
+    )
     
     # Get colors based on palette choice
     if palette == 'spectrum':
@@ -282,8 +305,11 @@ def plot_merian_chromosomes(locations, chrom_lengths, output_prefix, minimum_bus
         print("[INFO] Using categorical palette")
 
     panel_size = max(1, int(panel_size))
-    ncols = min(MAX_PANEL_COLUMNS, max(1, math.ceil(n_chroms / panel_size)))
+    max_columns = max(1, int(max_columns))
+    ncols = min(max_columns, max(1, math.ceil(n_chroms / panel_size)))
     chroms_per_panel = max(1, math.ceil(n_chroms / ncols))
+    compact_layout = n_chroms > COMPACT_LABEL_THRESHOLD
+    label_fontsize = 8 if compact_layout else 10
     panel_height = max(
         MIN_PLOT_HEIGHT_CM,
         ROW_HEIGHT_CM * min(chroms_per_panel, max(1, n_chroms))
@@ -305,13 +331,14 @@ def plot_merian_chromosomes(locations, chrom_lengths, output_prefix, minimum_bus
             panel_limits.append(1.0)
 
     fig_width = PLOT_BODY_WIDTH_CM / 2.54
+    panel_widths = [1] * ncols if compact_layout else panel_limits
 
     fig, axes = plt.subplots(
         nrows=1,
         ncols=ncols,
         figsize=(fig_width, panel_height / 2.54),
         squeeze=False,
-        gridspec_kw={'width_ratios': panel_limits}
+        gridspec_kw={'width_ratios': panel_widths}
     )
     axes = axes[0]
 
@@ -347,7 +374,7 @@ def plot_merian_chromosomes(locations, chrom_lengths, output_prefix, minimum_bus
             if chrom in merian_labels:
                 label_text = merian_labels[chrom]
                 ax.text(length * (1 + LABEL_OFFSET_FACTOR), y, label_text,
-                        va='center', ha='left', fontsize=10,
+                        va='center', ha='left', fontsize=label_fontsize,
                         color='#333333')
 
         ax.set_xlim(0, panel_limit)
@@ -355,7 +382,7 @@ def plot_merian_chromosomes(locations, chrom_lengths, output_prefix, minimum_bus
         ax.set_xlabel('')
         ax.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'{x/1e6:.0f}'))
         ax.set_yticks([y_positions[c] for c in panel_chroms])
-        ax.set_yticklabels(panel_chroms, fontsize=10)
+        ax.set_yticklabels(panel_chroms, fontsize=label_fontsize)
         ax.set_ylabel('')
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
@@ -402,16 +429,21 @@ def main():
                        help='Minimum BUSCOs for a Merian to appear in chromosome label (default: 5)')
     parser.add_argument('--panel-size', type=int, default=DEFAULT_PANEL_SIZE,
                        help=f'Target chromosomes/scaffolds per panel before splitting into columns (default: {DEFAULT_PANEL_SIZE})')
+    parser.add_argument('--max-columns', type=int, default=MAX_PANEL_COLUMNS,
+                       help=f'Maximum number of plot columns; use 1 for a single panel (default: {MAX_PANEL_COLUMNS})')
     
     args = parser.parse_args()
     
     print("[INFO] Loading data...")
     locations, chrom_lengths = load_data(args.file, args.lengths)
     
-    print(f"[INFO] Plotting {len(locations)} BUSCOs across {len(chrom_lengths)} chromosomes...")
+    print(
+        f"[INFO] Loaded {len(locations)} BUSCOs and "
+        f"{len(chrom_lengths)} chromosome/scaffold lengths..."
+    )
     plot_merian_chromosomes(locations, chrom_lengths, args.prefix,
                            args.minimum, args.palette, args.label_threshold,
-                           args.panel_size)
+                           args.panel_size, args.max_columns)
     
     print("[INFO] Done.")
 

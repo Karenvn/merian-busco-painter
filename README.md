@@ -91,7 +91,7 @@ real scaffold lengths by passing a `.fai` file to `plot_buscopainter.py` with
 `--lengths`. In this mode, plotted names come directly from the sequence
 identifiers in the BUSCO table and `.fai` index, and scaffold lengths come from
 the index. Because the `.fai` defines the plotting units, scaffold entries from
-that index may appear as separate plotted rows.
+that index may appear as separate plotted rows when they pass `--minimum`.
 
 The plotting step accepts either the NCBI-derived `chrom_lengths.tsv` written
 by `buscopainter.py` or a standard `.fai` index. Estimating lengths directly
@@ -119,7 +119,8 @@ python3 plot_buscopainter.py \
   --minimum 1 \
   --palette merianbow4 \
   --label-threshold 5 \
-  --panel-size 20
+  --panel-size 20 \
+  --max-columns 2
 ```
 
 In this mode:
@@ -149,15 +150,16 @@ python3 plot_buscopainter.py \
   --minimum 1 \
   --palette merianbow4 \
   --label-threshold 5 \
-  --panel-size 20
+  --panel-size 20 \
+  --max-columns 3
 ```
 
 In this mode:
 
 - `buscopainter.py` does not fetch chromosome lengths
 - `plot_buscopainter.py` uses a local `.fai` as `--lengths`
-- the plotted units come from the sequence names in the `.fai`
-- scaffolds in the index can appear as separate plotted rows
+- the plotted units come from sequence names in the `.fai` that pass `--minimum`
+- scaffold entries from the index can appear as separate plotted rows
 
 Do not mix these routes. In particular:
 
@@ -177,7 +179,8 @@ If an assembly has many chromosomes, `plot_buscopainter.py` can split the figure
 into columns automatically. `--panel-size` sets the target number of
 chromosomes/scaffolds per column. The default is `20`, so most Lepidoptera
 chromosome-scale assemblies are plotted as two columns. Very large scaffold
-sets are capped at four columns and made taller instead of becoming very wide.
+sets are capped at three columns by default and made taller instead of becoming
+very wide. Use `--max-columns 1` to force a single-panel plot.
 
 
 ## Batch workflow
@@ -263,10 +266,12 @@ against their true lengths. Plotted rows come from sequence identifiers in the
   extent only.
 - The plotting script labels each scaffold/chromosome with Merian elements that
   meet the `--label-threshold`.
-- Large chromosome sets can be split across columns with `--panel-size`; panel
-  widths shrink or expand to fit their local x-axis range while preserving a
-  common Mb scale across the whole figure. The current layout favours a
-  narrower, taller figure for print and web use.
+- Large chromosome sets can be split across columns with `--panel-size` and
+  capped with `--max-columns`.
+  Chromosome-scale plots preserve a common Mb scale across panels; large
+  scaffold-heavy plots use equal-width panels so shorter scaffolds stay
+  legible. The current layout favours a narrower, taller figure for print and
+  web use.
 - If Open Sans is available locally it will be used automatically; otherwise
   matplotlib's default sans-serif font is used.
 
