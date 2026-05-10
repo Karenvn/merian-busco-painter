@@ -183,12 +183,15 @@ sets are capped at three columns by default and made taller instead of becoming
 very wide. Use `--max-columns 1` to force a single-panel plot.
 
 
-## Batch workflow
+## Batch workflow for genome notes
 
 The wrapper expects to be run from a directory containing:
 
-- `tolids`: one ToLID per line
-- `tolids_accessions.tsv` or `tolid_accessions.tsv`: two-column tab-separated file with `ToLID<TAB>assembly_accession`
+- `tolids_accessions.tsv` or `tolid_accessions.tsv`: tab-separated file with at least `ToLID<TAB>assembly_accession`
+
+By default, the wrapper uses the first column of the accession table as the
+ToLID list. Set `TOLID_FILE` explicitly only when you want to run a subset or a
+custom order.
 
 Run:
 
@@ -206,7 +209,6 @@ You can override any of these:
 
 ```bash
 DATA_ROOT=/path/to/project_data \
-TOLID_FILE=tolids \
 ACCESSION_FILE=tolids_accessions.tsv \
 MERIAN_REF=Merian_elements_full_table.tsv \
 BUSCO_DIR=/path/to/busco \

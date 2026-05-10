@@ -10,7 +10,7 @@ DATA_ROOT="${DATA_ROOT:-.}"
 BUSCO_DIR="${BUSCO_DIR:-${DATA_ROOT}/busco}"
 OUTPUT_DIR="${OUTPUT_DIR:-${DATA_ROOT}/merians}"
 MERIAN_REF="${MERIAN_REF:-${SCRIPT_DIR}/Merian_elements_full_table.tsv}"
-TOLID_FILE="${TOLID_FILE:-tolids}"
+TOLID_FILE="${TOLID_FILE:-}"
 
 resolve_accession_file() {
   if [[ -n "${ACCESSION_FILE:-}" ]]; then
@@ -33,13 +33,21 @@ ACCESSION_FILE="$(resolve_accession_file)" || {
   exit 1
 }
 
-if [[ ! -f "$MERIAN_REF" ]]; then
-  echo "ERROR: Merian reference table not found: $MERIAN_REF"
-  exit 1
+TOLID_SOURCE=""
+TOLID_SOURCE_MODE="list"
+if [[ -n "$TOLID_FILE" ]]; then
+  if [[ ! -f "$TOLID_FILE" ]]; then
+    echo "ERROR: TOLID_FILE not found: $TOLID_FILE"
+    exit 1
+  fi
+  TOLID_SOURCE="$TOLID_FILE"
+else
+  TOLID_SOURCE="$ACCESSION_FILE"
+  TOLID_SOURCE_MODE="accession"
 fi
 
-if [[ ! -f "$TOLID_FILE" ]]; then
-  echo "ERROR: $TOLID_FILE not found in current directory"
+if [[ ! -f "$MERIAN_REF" ]]; then
+  echo "ERROR: Merian reference table not found: $MERIAN_REF"
   exit 1
 fi
 
@@ -126,23 +134,34 @@ success=0
 failed=0
 skipped=0
 
-while IFS= read -r tolid || [[ -n "$tolid" ]]; do
+if [[ "$TOLID_SOURCE_MODE" == "accession" ]]; then
+  echo "ToLID source: first column of $TOLID_SOURCE"
+else
+  echo "ToLID source: $TOLID_SOURCE"
+fi
+
+while IFS= read -r line || [[ -n "$line" ]]; do
+  if [[ "$TOLID_SOURCE_MODE" == "accession" ]]; then
+    tolid="${line%%$'\t'*}"
+  else
+    tolid="$line"
+  fi
+
   [[ -z "$tolid" ]] && continue
   [[ "$tolid" =~ ^# ]] && continue
 
   total=$((total + 1))
-  if process_tolid "$tolid"; then
-    success=$((success + 1))
-    continue
-  fi
-
+  process_tolid "$tolid"
   status=$?
-  if [[ $status -eq 2 ]]; then
+
+  if [[ $status -eq 0 ]]; then
+    success=$((success + 1))
+  elif [[ $status -eq 2 ]]; then
     skipped=$((skipped + 1))
   else
     failed=$((failed + 1))
   fi
-done < "$TOLID_FILE"
+done < "$TOLID_SOURCE"
 
 echo "================================"
 echo "Batch complete"
