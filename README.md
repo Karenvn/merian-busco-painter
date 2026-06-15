@@ -11,12 +11,14 @@ This code is derived from
 [`charlottewright/lep_busco_painter`](https://github.com/charlottewright/lep_busco_painter)
 and uses the same Merian reference table. The main changes in this version are:
 
-- a Python plotting script (`plot_buscopainter.py`) instead of the original R plotter
+- a Python plotting module instead of the original R plotter
 - inclusion of duplicated BUSCO hits in the location table and plot
 - chromosome length lookup from the NCBI Datasets API `sequence_reports` endpoint
 - modifications to the appearance of the Merian plot for use in genome note publications
 - automatic multi-column plotting for assemblies with more than 20 plotted
   chromosomes/scaffolds by default
+- an installable Python package with a single plot command for final and draft
+  assembly modes
 - a batch wrapper for running multiple ToLIDs from genome notes working directories.
 
 ## Important assumption
@@ -52,8 +54,9 @@ preparation.
 
 ## Files
 
-- `buscopainter.py`: map BUSCO hits to Merian elements and optionally fetch chromosome lengths
-- `plot_buscopainter.py`: generate PNG and SVG Merian plots
+- `src/merian_busco_painter/`: installable Python package
+- `buscopainter.py`: compatibility wrapper for `merian-busco-painter paint`
+- `plot_buscopainter.py`: compatibility wrapper for `merian-busco-painter plot`
 - `busco_to_merian.sh`: batch wrapper for ToLID lists
 - `Merian_elements_full_table.tsv`: reference BUSCO-to-Merian table
 - `LICENSE`: MIT license retained for the adapted codebase
@@ -64,21 +67,34 @@ preparation.
 - `pandas`
 - `matplotlib`
 - `requests`
-- `biopython`
 
-Install with:
+For local development, install with:
 
 ```bash
-python3 -m pip install -r requirements.txt
+python3 -m pip install -e .
 ```
 
-## Two plotting routes
+This provides:
 
-These scripts support two distinct workflows, depending on whether you would
-like to use chromosome lengths from a public assembly on NCBI, or sequence
-lengths from a local `.fai` file.
+```bash
+merian-busco-painter --help
+merian-busco-painter paint --help
+merian-busco-painter plot --help
+```
 
-If you run `buscopainter.py` with `--accession`, chromosome lengths are fetched
+The shorter alias `mbp` is also installed.
+
+## One plotter, two assembly modes
+
+The package has one plotting command, `merian-busco-painter plot`, with an
+explicit `--assembly-mode` option:
+
+- `--assembly-mode final`: use the painter-generated `chrom_lengths.tsv`
+  (`Chrom`/`Length_Mb`) for a public chromosome-scale assembly
+- `--assembly-mode draft`: use a local `.fai` for scaffold/contig lengths
+- `--assembly-mode auto`: detect the format of the supplied `--lengths` file
+
+If you run `merian-busco-painter paint` with `--accession`, chromosome lengths are fetched
 from the NCBI Datasets `sequence_reports` endpoint. In that mode, the plot is
 chromosome-focused: plotting units are assembled chromosomes, and lengths from
 unlocalised scaffolds are added to their parent chromosome. This is the mode
@@ -87,14 +103,14 @@ plotted chromosome names come from the GenBank accessions returned by NCBI
 Datasets.
 
 If you do not provide `--accession`, curation assemblies can be plotted against
-real scaffold lengths by passing a `.fai` file to `plot_buscopainter.py` with
+real scaffold lengths by passing a `.fai` file to `merian-busco-painter plot` with
 `--lengths`. In this mode, plotted names come directly from the sequence
 identifiers in the BUSCO table and `.fai` index, and scaffold lengths come from
 the index. Because the `.fai` defines the plotting units, scaffold entries from
 that index may appear as separate plotted rows when they pass `--minimum`.
 
 The plotting step accepts either the NCBI-derived `chrom_lengths.tsv` written
-by `buscopainter.py` or a standard `.fai` index. Estimating lengths directly
+by `merian-busco-painter paint` or a standard `.fai` index. Estimating lengths directly
 from BUSCO positions is a last-resort fallback when no
 lengths file is available.
 
@@ -106,15 +122,15 @@ for a public assembly or genome note figure.
 ```bash
 mkdir -p output/ilHelArmi9
 
-python3 buscopainter.py \
-  --reference_table Merian_elements_full_table.tsv \
+merian-busco-painter paint \
   --query_table data/ilHelArmi9/full_table.tsv \
   --prefix output/ilHelArmi9/ \
   --accession GCA_963930815.1
 
-python3 plot_buscopainter.py \
+merian-busco-painter plot \
   --file output/ilHelArmi9/all_location.tsv \
   --lengths output/ilHelArmi9/chrom_lengths.tsv \
+  --assembly-mode final \
   --prefix output/ilHelArmi9/ilHelArmi9 \
   --minimum 1 \
   --palette merianbow4 \
@@ -125,8 +141,8 @@ python3 plot_buscopainter.py \
 
 In this mode:
 
-- `buscopainter.py` writes `chrom_lengths.tsv`
-- `plot_buscopainter.py` must use that `chrom_lengths.tsv` as `--lengths`
+- `merian-busco-painter paint` writes `chrom_lengths.tsv`
+- `merian-busco-painter plot` must use that `chrom_lengths.tsv` as `--lengths`
 - the plotted units are assembled chromosomes only
 - unlocalised scaffolds are added onto their parent chromosome length rather
   than plotted separately
@@ -138,14 +154,14 @@ Use this when you want to plot against scaffold lengths from a local assembly in
 ```bash
 mkdir -p output/ilApoPilo2
 
-python3 buscopainter.py \
-  --reference_table Merian_elements_full_table.tsv \
+merian-busco-painter paint \
   --query_table data/ilApoPilo2/full_table.tsv \
   --prefix output/ilApoPilo2/
 
-python3 plot_buscopainter.py \
+merian-busco-painter plot \
   --file output/ilApoPilo2/all_location.tsv \
   --lengths data/ilApoPilo2.fa.fai \
+  --assembly-mode draft \
   --prefix output/ilApoPilo2/ilApoPilo2 \
   --minimum 1 \
   --palette merianbow4 \
@@ -156,26 +172,26 @@ python3 plot_buscopainter.py \
 
 In this mode:
 
-- `buscopainter.py` does not fetch chromosome lengths
-- `plot_buscopainter.py` uses a local `.fai` as `--lengths`
+- `merian-busco-painter paint` does not fetch chromosome lengths
+- `merian-busco-painter plot` uses a local `.fai` as `--lengths`
 - the plotted units come from sequence names in the `.fai` that pass `--minimum`
 - scaffold entries from the index can appear as separate plotted rows
 
 Do not mix these routes. In particular:
 
-- if you ran `buscopainter.py` with `--accession`, plot with the generated
+- if you ran `merian-busco-painter paint` with `--accession`, plot with the generated
   `chrom_lengths.tsv`, not a `.fai`
-- if you pass a `.fai` to `plot_buscopainter.py`, you are using scaffold mode,
-  even if you also ran `buscopainter.py` with `--accession`
+- if you pass a `.fai` to `merian-busco-painter plot`, you are using scaffold mode,
+  even if you also ran `merian-busco-painter paint` with `--accession`
 
-Outputs from `buscopainter.py`:
+Outputs from `merian-busco-painter paint`:
 
 - `all_location.tsv`
 - `chrom_lengths.tsv` when `--accession` is used
 - `*.png`
 - `*.svg`
 
-If an assembly has many chromosomes, `plot_buscopainter.py` can split the figure
+If an assembly has many chromosomes, `merian-busco-painter plot` can split the figure
 into columns automatically. `--panel-size` sets the target number of
 chromosomes/scaffolds per column. The default is `20`, so most Lepidoptera
 chromosome-scale assemblies are plotted as two columns. Very large scaffold
@@ -253,7 +269,7 @@ against their true lengths. Plotted rows come from sequence identifiers in the
 
 ## Notes
 
-- `buscopainter.py` keeps both `Complete` and `Duplicated` BUSCO records.
+- `merian-busco-painter paint` keeps both `Complete` and `Duplicated` BUSCO records.
 - BUSCO inputs should currently be generated with the `odb10` database version
   compatible with `Merian_elements_full_table.tsv`.
 - Chromosome lengths come from NCBI Datasets `sequence_reports`, using the main
@@ -261,7 +277,7 @@ against their true lengths. Plotted rows come from sequence identifiers in the
   that chromosome.
 - In NCBI-driven plots, chromosome labels are the assembled-molecule GenBank
   accessions returned by Datasets rather than original assembly header names.
-- For curation assemblies, `plot_buscopainter.py` can use a `.fai` index to
+- For curation assemblies, `merian-busco-painter plot` can use a `.fai` index to
   plot assembly sequences against their true scaffold lengths.
 - Without a lengths file, the fallback plot includes all BUSCO-bearing
   `query_chr` values from the BUSCO table and estimates their lengths from BUSCO

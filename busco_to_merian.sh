@@ -12,6 +12,14 @@ OUTPUT_DIR="${OUTPUT_DIR:-${DATA_ROOT}/merians}"
 MERIAN_REF="${MERIAN_REF:-${SCRIPT_DIR}/Merian_elements_full_table.tsv}"
 TOLID_FILE="${TOLID_FILE:-}"
 
+if command -v merian-busco-painter >/dev/null 2>&1; then
+  PAINTER_CMD=(merian-busco-painter paint)
+  PLOTTER_CMD=(merian-busco-painter plot)
+else
+  PAINTER_CMD=(python3 "${SCRIPT_DIR}/buscopainter.py")
+  PLOTTER_CMD=(python3 "${SCRIPT_DIR}/plot_buscopainter.py")
+fi
+
 resolve_accession_file() {
   if [[ -n "${ACCESSION_FILE:-}" ]]; then
     printf '%s\n' "$ACCESSION_FILE"
@@ -61,9 +69,21 @@ get_accession() {
   awk -F '\t' -v tolid="$tolid" '$1 == tolid {print $2; exit}' "$ACCESSION_FILE"
 }
 
+length_table_rows() {
+  local lengths_file="$1"
+  awk -F '\t' 'NR > 1 && NF >= 2 && $1 != "" && $2 != "" {count++} END {print count + 0}' "$lengths_file"
+}
+
+find_local_fai() {
+  local tolid="$1"
+  find "${BUSCO_DIR}/${tolid}" -maxdepth 1 -type f \
+    \( -name "*.fai" -o -name "*.fa.fai" -o -name "*.fasta.fai" -o -name "*.fa.gz.fai" -o -name "*.fasta.gz.fai" \) \
+    2>/dev/null | sort | head -n 1
+}
+
 process_tolid() {
   local tolid="$1"
-  local accession busco_input tolid_output location_file lengths_file
+  local accession busco_input tolid_output location_file lengths_file local_fai n_lengths
 
   echo "================================"
   echo "Processing: $tolid"
@@ -90,7 +110,7 @@ process_tolid() {
   }
 
   echo "Running BUSCO painter..."
-  if ! python3 "${SCRIPT_DIR}/buscopainter.py" \
+  if ! "${PAINTER_CMD[@]}" \
     --reference_table "$MERIAN_REF" \
     --query_table "$busco_input" \
     --prefix "${tolid_output}/" \
@@ -112,10 +132,23 @@ process_tolid() {
     return 1
   fi
 
+  n_lengths="$(length_table_rows "$lengths_file")"
+  if [[ "$n_lengths" -eq 0 ]]; then
+    local_fai="$(find_local_fai "$tolid")"
+    if [[ -z "$local_fai" ]]; then
+      echo "ERROR: NCBI returned no chromosome lengths and no local .fai was found for $tolid in ${BUSCO_DIR}/${tolid}"
+      return 1
+    fi
+    echo "WARN: NCBI returned no chromosome lengths for $accession; plotting with local .fai: $local_fai"
+    lengths_file="$local_fai"
+  fi
+
   echo "Plotting Merian elements..."
-  if ! python3 "${SCRIPT_DIR}/plot_buscopainter.py" \
+  rm -f "${tolid_output}/${tolid}.png" "${tolid_output}/${tolid}.svg"
+  if ! "${PLOTTER_CMD[@]}" \
     --file "$location_file" \
     --lengths "$lengths_file" \
+    --assembly-mode auto \
     --prefix "${tolid_output}/${tolid}" \
     --minimum 1 \
     --palette merianbow4 \

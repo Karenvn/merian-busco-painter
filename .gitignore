@@ -4,8 +4,10 @@
 .Rhistory
 __pycache__/
 *.pyc
+*.egg-info/
+build/
+dist/
 *.svg
 output/
 *.png
 !examples/*.png
-

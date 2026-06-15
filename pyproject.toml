@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "merian-busco-painter"
+version = "0.1.0"
+description = "Map BUSCO full_table.tsv files to Merian elements and plot draft or final assemblies."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [
+    { name = "Karen van Niekerk" }
+]
+dependencies = [
+    "matplotlib",
+    "pandas",
+    "requests",
+]
+
+[project.scripts]
+merian-busco-painter = "merian_busco_painter.cli:main"
+mbp = "merian_busco_painter.cli:main"
+buscopainter = "merian_busco_painter.cli:paint_main"
+plot-buscopainter = "merian_busco_painter.cli:plot_main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+merian_busco_painter = ["data/*.tsv"]
+
