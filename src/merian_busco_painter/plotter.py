@@ -20,6 +20,7 @@ MIN_PLOT_HEIGHT_CM = 18
 MAX_PANEL_COLUMNS = 3
 COMPACT_LABEL_THRESHOLD = 80
 ASSEMBLY_MODES = ("auto", "final", "draft")
+DEFAULT_LABEL_WRAP = 4
 
 
 def resolve_open_sans_font(env_var: str = "GENOMENOTES_FONT") -> str | None:
@@ -154,8 +155,20 @@ def filter_chromosomes(
     return locations[locations["query_chr"].isin(keep_chroms)].copy()
 
 
+def format_merian_label(merians: list[str], wrap: int = DEFAULT_LABEL_WRAP) -> str:
+    """Return a Merian label, optionally wrapped by element count."""
+    if wrap <= 0:
+        return "; ".join(merians)
+
+    wrapped_lines = [
+        "; ".join(merians[index : index + wrap])
+        for index in range(0, len(merians), wrap)
+    ]
+    return "\n".join(wrapped_lines)
+
+
 def calculate_merian_labels(
-    locations: pd.DataFrame, threshold: int = 5
+    locations: pd.DataFrame, threshold: int = 5, wrap: int = DEFAULT_LABEL_WRAP
 ) -> dict[str, str]:
     """Return Merian labels ordered by median BUSCO position per chromosome."""
     counts = (
@@ -177,7 +190,9 @@ def calculate_merian_labels(
         chrom_counts = chrom_counts.sort_values(
             ["median_position", "merian_sort"], kind="stable"
         )
-        labels[chrom] = "; ".join(chrom_counts["assigned_chr"].tolist())
+        labels[chrom] = format_merian_label(
+            chrom_counts["assigned_chr"].tolist(), wrap=wrap
+        )
 
     return labels
 
@@ -334,6 +349,7 @@ def plot_merian_chromosomes(
     label_threshold: int = 5,
     panel_size: int = DEFAULT_PANEL_SIZE,
     max_columns: int = MAX_PANEL_COLUMNS,
+    label_wrap: int = DEFAULT_LABEL_WRAP,
 ) -> None:
     """Create the main Merian plot with chromosome labels."""
     setup_font()
@@ -357,7 +373,9 @@ def plot_merian_chromosomes(
         raise ValueError("No plotted chromosomes/scaffolds have matching lengths")
 
     label_locations = locations[locations["buscoID"] != "NA"].copy()
-    merian_labels = calculate_merian_labels(label_locations, threshold=label_threshold)
+    merian_labels = calculate_merian_labels(
+        label_locations, threshold=label_threshold, wrap=label_wrap
+    )
     chrom_order = chrom_lengths.sort_values("length", ascending=False)[
         "query_chr"
     ].tolist()
@@ -459,6 +477,7 @@ def plot_merian_chromosomes(
                     ha="left",
                     fontsize=label_fontsize,
                     color="#333333",
+                    linespacing=0.85,
                 )
 
         ax.set_xlim(0, panel_limit)
@@ -509,6 +528,7 @@ def plot_locations(
     label_threshold: int = 5,
     panel_size: int = DEFAULT_PANEL_SIZE,
     max_columns: int = MAX_PANEL_COLUMNS,
+    label_wrap: int = DEFAULT_LABEL_WRAP,
 ) -> None:
     print("[INFO] Loading data...")
     locations, chrom_lengths = load_data(
@@ -522,10 +542,11 @@ def plot_locations(
         locations,
         chrom_lengths,
         output_prefix,
-        minimum_buscos,
-        palette,
-        label_threshold,
-        panel_size,
-        max_columns,
+        minimum_buscos=minimum_buscos,
+        palette=palette,
+        label_threshold=label_threshold,
+        panel_size=panel_size,
+        max_columns=max_columns,
+        label_wrap=label_wrap,
     )
     print("[INFO] Done.")

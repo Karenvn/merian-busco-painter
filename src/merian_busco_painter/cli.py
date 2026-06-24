@@ -10,6 +10,7 @@ from merian_busco_painter import __version__
 from merian_busco_painter.painter import paint_buscos
 from merian_busco_painter.plotter import (
     ASSEMBLY_MODES,
+    DEFAULT_LABEL_WRAP,
     DEFAULT_PANEL_SIZE,
     MAX_PANEL_COLUMNS,
     plot_locations,
@@ -121,6 +122,15 @@ def configure_plot_parser(parser: argparse.ArgumentParser) -> None:
         help="Minimum BUSCOs for a Merian label to appear (default: 5)",
     )
     parser.add_argument(
+        "--label-wrap",
+        type=int,
+        default=DEFAULT_LABEL_WRAP,
+        help=(
+            "Wrap Merian labels after this many elements per line "
+            f"(default: {DEFAULT_LABEL_WRAP}; use 0 to disable)"
+        ),
+    )
+    parser.add_argument(
         "--panel-size",
         type=int,
         default=DEFAULT_PANEL_SIZE,
@@ -183,6 +193,7 @@ def run_plot(args: argparse.Namespace) -> None:
         minimum_buscos=args.minimum,
         palette=args.palette,
         label_threshold=args.label_threshold,
+        label_wrap=args.label_wrap,
         panel_size=args.panel_size,
         max_columns=args.max_columns,
     )
