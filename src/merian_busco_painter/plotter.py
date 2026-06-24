@@ -356,12 +356,9 @@ def plot_merian_chromosomes(
     setup_font()
 
     locations = filter_chromosomes(locations, minimum_buscos)
-    is_placeholder = locations["buscoID"] == "NA"
-    valid_merians = ["MZ"] + [f"M{i}" for i in range(1, 32)]
-    locations = locations[
-        is_placeholder | locations["assigned_chr"].str.upper().isin(valid_merians)
-    ].copy()
+    valid_merians = {"MZ"} | {f"M{i}" for i in range(1, 32)}
     locations["assigned_chr"] = locations["assigned_chr"].str.upper()
+    is_valid_merian = locations["assigned_chr"].isin(valid_merians)
 
     if locations.empty:
         raise ValueError(
@@ -373,7 +370,7 @@ def plot_merian_chromosomes(
     if chrom_lengths.empty:
         raise ValueError("No plotted chromosomes/scaffolds have matching lengths")
 
-    label_locations = locations[locations["buscoID"] != "NA"].copy()
+    label_locations = locations[(locations["buscoID"] != "NA") & is_valid_merian].copy()
     merian_labels = calculate_merian_labels(
         label_locations, threshold=label_threshold, wrap=label_wrap
     )
@@ -456,7 +453,10 @@ def plot_merian_chromosomes(
             )
             ax.add_patch(rect)
 
-            chrom_buscos = locations[locations["query_chr"] == chrom]
+            chrom_buscos = locations[
+                (locations["query_chr"] == chrom)
+                & locations["assigned_chr"].isin(valid_merians)
+            ]
             for _, busco in chrom_buscos.iterrows():
                 if pd.notna(busco["position"]):
                     color = merian_colors.get(busco["assigned_chr"], (0.85, 0.85, 0.85))
