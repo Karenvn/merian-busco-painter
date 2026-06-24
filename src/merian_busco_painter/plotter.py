@@ -119,8 +119,9 @@ def load_data(
     location_file: Path, lengths_file: Path | None = None, assembly_mode: str = "auto"
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Load BUSCO locations and chromosome/scaffold lengths."""
-    locations = pd.read_csv(location_file, sep="\t")
+    locations = pd.read_csv(location_file, sep="\t", keep_default_na=False)
     locations["query_chr"] = locations["query_chr"].str.replace(":.*", "", regex=True)
+    locations["position"] = pd.to_numeric(locations["position"], errors="coerce")
 
     if lengths_file:
         chrom_lengths = load_lengths(lengths_file, assembly_mode=assembly_mode)
