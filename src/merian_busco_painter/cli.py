@@ -103,13 +103,6 @@ def configure_plot_parser(parser: argparse.ArgumentParser) -> None:
         help="Output prefix for PNG/SVG plot files",
     )
     parser.add_argument(
-        "-m",
-        "--minimum",
-        type=int,
-        default=3,
-        help="Minimum BUSCOs per chromosome/scaffold (default: 3)",
-    )
-    parser.add_argument(
         "--palette",
         choices=["categorical", "spectrum", "merianbow", "merianbow4"],
         default="categorical",
@@ -190,7 +183,6 @@ def run_plot(args: argparse.Namespace) -> None:
         lengths_file=args.lengths,
         assembly_mode=args.assembly_mode,
         output_prefix=args.prefix,
-        minimum_buscos=args.minimum,
         palette=args.palette,
         label_threshold=args.label_threshold,
         label_wrap=args.label_wrap,

@@ -107,7 +107,7 @@ real scaffold lengths by passing a `.fai` file to `merian-busco-painter plot` wi
 `--lengths`. In this mode, plotted names come directly from the sequence
 identifiers in the BUSCO table and `.fai` index, and scaffold lengths come from
 the index. Because the `.fai` defines the plotting units, scaffold entries from
-that index may appear as separate plotted rows when they pass `--minimum`.
+that index appear as plotted rows.
 
 The plotting step accepts either the NCBI-derived `chrom_lengths.tsv` written
 by `merian-busco-painter paint` or a standard `.fai` index. Estimating lengths directly
@@ -132,7 +132,6 @@ merian-busco-painter plot \
   --lengths output/ilHelArmi9/chrom_lengths.tsv \
   --assembly-mode final \
   --prefix output/ilHelArmi9/ilHelArmi9 \
-  --minimum 1 \
   --palette merianbow4 \
   --label-threshold 5 \
   --panel-size 20 \
@@ -163,7 +162,6 @@ merian-busco-painter plot \
   --lengths data/ilApoPilo2.fa.fai \
   --assembly-mode draft \
   --prefix output/ilApoPilo2/ilApoPilo2 \
-  --minimum 1 \
   --palette merianbow4 \
   --label-threshold 5 \
   --panel-size 20 \
@@ -174,7 +172,7 @@ In this mode:
 
 - `merian-busco-painter paint` does not fetch chromosome lengths
 - `merian-busco-painter plot` uses a local `.fai` as `--lengths`
-- the plotted units come from sequence names in the `.fai` that pass `--minimum`
+- the plotted units come from sequence names in the `.fai`
 - scaffold entries from the index can appear as separate plotted rows
 
 Do not mix these routes. In particular:

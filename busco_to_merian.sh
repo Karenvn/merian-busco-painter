@@ -150,7 +150,6 @@ process_tolid() {
     --lengths "$lengths_file" \
     --assembly-mode auto \
     --prefix "${tolid_output}/${tolid}" \
-    --minimum 1 \
     --palette merianbow4 \
     --label-threshold 5; then
     echo "ERROR: Plotting failed for $tolid"

@@ -137,25 +137,6 @@ def load_data(
     return locations, chrom_lengths
 
 
-def filter_chromosomes(
-    locations: pd.DataFrame, minimum_buscos: int = 3
-) -> pd.DataFrame:
-    """Filter chromosomes by minimum BUSCO count, keeping accession placeholders."""
-    is_placeholder = locations["buscoID"] == "NA"
-    busco_counts = (
-        locations[~is_placeholder]
-        .groupby("query_chr")
-        .size()
-        .reset_index(name="n_busco")
-    )
-    valid_chroms = busco_counts[busco_counts["n_busco"] >= minimum_buscos][
-        "query_chr"
-    ]
-    placeholder_chroms = locations.loc[is_placeholder, "query_chr"]
-    keep_chroms = set(valid_chroms).union(placeholder_chroms)
-    return locations[locations["query_chr"].isin(keep_chroms)].copy()
-
-
 def format_merian_label(merians: list[str], wrap: int = DEFAULT_LABEL_WRAP) -> str:
     """Return a Merian label, optionally wrapped by element count."""
     if wrap <= 0:
@@ -166,6 +147,20 @@ def format_merian_label(merians: list[str], wrap: int = DEFAULT_LABEL_WRAP) -> s
         for index in range(0, len(merians), wrap)
     ]
     return "\n".join(wrapped_lines)
+
+
+def split_balanced(values: list[str], n_groups: int) -> list[list[str]]:
+    """Split values into ordered groups whose sizes differ by at most one."""
+    n_groups = max(1, n_groups)
+    base_size, extra = divmod(len(values), n_groups)
+    groups: list[list[str]] = []
+    start = 0
+    for group_index in range(n_groups):
+        group_size = base_size + (1 if group_index < extra else 0)
+        end = start + group_size
+        groups.append(values[start:end])
+        start = end
+    return groups
 
 
 def calculate_merian_labels(
@@ -345,7 +340,6 @@ def plot_merian_chromosomes(
     locations: pd.DataFrame,
     chrom_lengths: pd.DataFrame,
     output_prefix: str,
-    minimum_buscos: int = 3,
     palette: str = "categorical",
     label_threshold: int = 5,
     panel_size: int = DEFAULT_PANEL_SIZE,
@@ -355,17 +349,11 @@ def plot_merian_chromosomes(
     """Create the main Merian plot with chromosome labels."""
     setup_font()
 
-    locations = filter_chromosomes(locations, minimum_buscos)
     valid_merians = {"MZ"} | {f"M{i}" for i in range(1, 32)}
     locations["assigned_chr"] = locations["assigned_chr"].str.upper()
     is_valid_merian = locations["assigned_chr"].isin(valid_merians)
 
-    if locations.empty:
-        raise ValueError(
-            f"No chromosomes/scaffolds have at least {minimum_buscos} BUSCOs"
-        )
-
-    plotted_chroms = set(locations["query_chr"].dropna().unique())
+    plotted_chroms = set(chrom_lengths["query_chr"].dropna().unique())
     chrom_lengths = chrom_lengths[chrom_lengths["query_chr"].isin(plotted_chroms)].copy()
     if chrom_lengths.empty:
         raise ValueError("No plotted chromosomes/scaffolds have matching lengths")
@@ -381,14 +369,17 @@ def plot_merian_chromosomes(
     n_chroms = len(chrom_order)
     print(
         f"[INFO] Plotting {len(locations)} BUSCOs across "
-        f"{n_chroms} chromosomes/scaffolds after filtering..."
+        f"{n_chroms} chromosomes/scaffolds..."
     )
 
     merian_colors = get_palette(palette)
     panel_size = max(1, int(panel_size))
     max_columns = max(1, int(max_columns))
     ncols = min(max_columns, max(1, math.ceil(n_chroms / panel_size)))
-    chroms_per_panel = max(1, math.ceil(n_chroms / ncols))
+    panel_chroms_list = split_balanced(chrom_order, ncols)
+    chroms_per_panel = max(
+        (len(panel_chroms) for panel_chroms in panel_chroms_list), default=0
+    )
     print(
         f"[INFO] Layout: {ncols} column(s), up to "
         f"{chroms_per_panel} chromosomes/scaffolds per column"
@@ -400,13 +391,8 @@ def plot_merian_chromosomes(
         MIN_PLOT_HEIGHT_CM, ROW_HEIGHT_CM * min(chroms_per_panel, max(1, n_chroms))
     )
 
-    panel_chroms_list: list[list[str]] = []
     panel_limits: list[float] = []
-    for col_idx in range(ncols):
-        start_idx = col_idx * chroms_per_panel
-        end_idx = min((col_idx + 1) * chroms_per_panel, n_chroms)
-        panel_chroms = chrom_order[start_idx:end_idx]
-        panel_chroms_list.append(panel_chroms)
+    for panel_chroms in panel_chroms_list:
         if panel_chroms:
             panel_max_length = chrom_lengths[
                 chrom_lengths["query_chr"].isin(panel_chroms)
@@ -524,7 +510,6 @@ def plot_locations(
     output_prefix: str,
     lengths_file: Path | None = None,
     assembly_mode: str = "auto",
-    minimum_buscos: int = 3,
     palette: str = "categorical",
     label_threshold: int = 5,
     panel_size: int = DEFAULT_PANEL_SIZE,
@@ -543,7 +528,6 @@ def plot_locations(
         locations,
         chrom_lengths,
         output_prefix,
-        minimum_buscos=minimum_buscos,
         palette=palette,
         label_threshold=label_threshold,
         panel_size=panel_size,
